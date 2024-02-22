@@ -1,0 +1,10 @@
+
+cpython:S6711"DUse a "numpy.random.Generator" here instead of this legacy function.(ªğŠ¥8İ‹©İ1
+hpython:S6711"DUse a "numpy.random.Generator" here instead of this legacy function.(ºÌ®âşÿÿÿÿ8©İ1
+cpython:S6711"DUse a "numpy.random.Generator" here instead of this legacy function.(œ€æô8©İ1
+ipython:S6711¡"DUse a "numpy.random.Generator" here instead of this legacy function.(öÔòŠûÿÿÿÿ8©İ1
+ipython:S6711¢"DUse a "numpy.random.Generator" here instead of this legacy function.(ş§ÓŠşÿÿÿÿ8©İ1
+ipython:S6711£"DUse a "numpy.random.Generator" here instead of this legacy function.(ó¹éÑıÿÿÿÿ8©İ1
+ipython:S6711¥"DUse a "numpy.random.Generator" here instead of this legacy function.(Ö‡öÉşÿÿÿÿ8Ÿ©İ1
+cpython:S6711§"DUse a "numpy.random.Generator" here instead of this legacy function.(É—‹L8Ÿ©İ1
+tpython:S3776µ"TRefactor this function to reduce its Cognitive Complexity from 17 to the 15 allowed.(‘àİï8Ÿ©İ1
