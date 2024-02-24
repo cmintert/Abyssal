@@ -1,10 +1,14 @@
 
-cpython:S6711"DUse a "numpy.random.Generator" here instead of this legacy function.(ªğŠ¥8İ‹©İ1
-hpython:S6711"DUse a "numpy.random.Generator" here instead of this legacy function.(ºÌ®âşÿÿÿÿ8©İ1
-cpython:S6711"DUse a "numpy.random.Generator" here instead of this legacy function.(œ€æô8©İ1
-ipython:S6711¡"DUse a "numpy.random.Generator" here instead of this legacy function.(öÔòŠûÿÿÿÿ8©İ1
-ipython:S6711¢"DUse a "numpy.random.Generator" here instead of this legacy function.(ş§ÓŠşÿÿÿÿ8©İ1
-ipython:S6711£"DUse a "numpy.random.Generator" here instead of this legacy function.(ó¹éÑıÿÿÿÿ8©İ1
-ipython:S6711¥"DUse a "numpy.random.Generator" here instead of this legacy function.(Ö‡öÉşÿÿÿÿ8Ÿ©İ1
-cpython:S6711§"DUse a "numpy.random.Generator" here instead of this legacy function.(É—‹L8Ÿ©İ1
-tpython:S3776µ"TRefactor this function to reduce its Cognitive Complexity from 17 to the 15 allowed.(‘àİï8Ÿ©İ1
+Tpython:S1066Õ"/Merge this if statement with the enclosing one.(àşÆÿÿÿÿÿÿ8À”½Ôİ1
+cpython:S6711"DUse a "numpy.random.Generator" here instead of this legacy function.(ªğŠ¥8•˜½Ôİ1
+hpython:S6711"DUse a "numpy.random.Generator" here instead of this legacy function.(ºÌ®âşÿÿÿÿ8•˜½Ôİ1
+cpython:S6711 "DUse a "numpy.random.Generator" here instead of this legacy function.(œ€æô8•˜½Ôİ1
+ipython:S6711Ÿ"DUse a "numpy.random.Generator" here instead of this legacy function.(öÔòŠûÿÿÿÿ8•˜½Ôİ1
+ipython:S6711 "DUse a "numpy.random.Generator" here instead of this legacy function.(ş§ÓŠşÿÿÿÿ8•˜½Ôİ1
+ipython:S6711¡"DUse a "numpy.random.Generator" here instead of this legacy function.(•Ë‘Óúÿÿÿÿ8•˜½Ôİ1
+ipython:S6711£"DUse a "numpy.random.Generator" here instead of this legacy function.(Ö‡öÉşÿÿÿÿ8•˜½Ôİ1
+cpython:S6711¥"DUse a "numpy.random.Generator" here instead of this legacy function.(É—‹L8•˜½Ôİ1
+dpython:S6711³"DUse a "numpy.random.Generator" here instead of this legacy function.(ó»é˜8•˜½Ôİ1
+ipython:S6711´"DUse a "numpy.random.Generator" here instead of this legacy function.(úæ®ßüÿÿÿÿ8•˜½Ôİ1
+dpython:S6711µ"DUse a "numpy.random.Generator" here instead of this legacy function.(øãôê8•˜½Ôİ1
+tpython:S3776½"TRefactor this function to reduce its Cognitive Complexity from 22 to the 15 allowed.(üñÅ¤8ØÄ½Ôİ1

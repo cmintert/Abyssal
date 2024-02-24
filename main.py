@@ -12,11 +12,18 @@ SPECTRAL_CLASSES_LUM_MASS_RATIO = {
 }
 
 class Nation:
-    def __init__(self, name, origin=None, expansion_rate=5, space_boundary=500):
+    def __init__(self, name, origin=None, expansion_rate=1, nation_colour=None,space_boundary=500):
         self.name = name
         self.expansion_rate = expansion_rate
         self.current_radius = 0
         self.nation_stars = []
+
+        if nation_colour is None:
+            #if no colour is provided, generate a random colour
+            self.nation_colour = (random.random(), random.random(), random.random())
+        else:
+            self.nation_colour = nation_colour
+
         if origin is None:
             # If no origin is provided, generate a random point within the boundary
             self.origin = {
@@ -30,15 +37,6 @@ class Nation:
     def expand_influence(self):
         """Expand the nation's sphere of influence based on its expansion rate."""
         self.current_radius += self.expansion_rate
-
-    def is_star_within_influence(self, star):
-        """Determine if a given star is within the nation's sphere of influence."""
-        distance = np.sqrt(
-            (star.x - self.origin["x"])**2 +
-            (star.y - self.origin["y"])**2 +
-            (star.z - self.origin["z"])**2
-        )
-        return distance <= self.current_radius
 
     def __str__(self):
         return f"{self.name}: Origin at {self.origin}, Current Radius: {self.current_radius}, Expansion Rate: {self.expansion_rate}"
@@ -154,13 +152,13 @@ class Starmap:
                 self.used_star_names.append(name)
                 return name
 
-    def generate_stars(self, seed=50):
+    def generate_stars(self, seed=50, number_of_stars=500):
         np.random.seed(seed)
-        for i in range(500):
+        for i in range(number_of_stars):
             # Generate random spherical coordinates
             r = 500 * (np.random.uniform(0, 1) ** (1/3))
             theta = 2 * np.random.uniform(0, 1) * np.pi
-            phi = np.random.uniform(0, 1) * np.pi
+            phi = np.arccos(2 * np.random.uniform(0, 1) - 1)
             # Create random spectral class
             spectral_class = np.random.choice(list(self.spectral_classes.keys()), p=[0.1, 0.2, 0.7])
             # Create random luminosity
@@ -170,26 +168,77 @@ class Starmap:
             # Set star properties
             current_star = Star(i, name=name,r=r, theta=theta, phi=phi, spectral_class=spectral_class, luminosity=luminosity)
             # add star to map
-            self.stars.append(current_star)
+            (self.stars.append(current_star))
+        # Add noise to star locations
+        self.star_location_noise()
+        self.star_location_stretch()
 
-    def generate_nations(self, n=5, space_boundary=500):
-        for i in range(n):
-            name = f"Nation {i + 1}"
-            new_nation = Nation(name=name, space_boundary=space_boundary)
-            self.nations.append(new_nation)
+    def star_location_noise(self, noise=10):
 
-    def asign_stars_to_nations(self):
-        while True:
-            for star in self.stars:
-                for nation in self.nations:
-                    if nation.is_star_within_influence(star):
-                        if not any(star in n.nation_stars for n in self.nations):
-                            nation.nation_stars.append(star)
-                            break
-                    nation.expand_influence()
-            # Check if all stars are assigned
-            if all(any(star in n.nation_stars for n in self.nations) for star in self.stars):
-                break
+        for star in self.stars:
+            star.x += np.random.uniform(-noise, noise)
+            star.y += np.random.uniform(-noise, noise)
+            star.z += np.random.uniform(-noise, noise)
+
+    def star_location_stretch(self, stretch_x=1, stretch_y=1, stretch_z=0.6):
+        for star in self.stars:
+            star.x *= stretch_x
+            star.y *= stretch_y
+            star.z *= stretch_z
+
+    def generate_nations(self, n=5, space_boundary=500, name_set=None, nation_colour_set=None, origin_set=None, expansion_rate_set=None):
+
+        if name_set is not None:
+            for name in name_set:
+                new_nation = Nation(name=name, space_boundary=space_boundary)
+                self.nations.append(new_nation)
+        else:
+            for i in range(n):
+                name = f"Nation {i + 1}"
+                new_nation = Nation(name=name, space_boundary=space_boundary)
+                self.nations.append(new_nation)
+
+        if nation_colour_set is not None:
+            for i in range(len(self.nations)):
+                self.nations[i].nation_colour = nation_colour_set[i]
+
+        if len(self.nations) > len(nation_colour_set):
+            print("Not enough colours for all nations, using random colours for the rest.")
+
+        if origin_set is not None:
+            for i in range(len(self.nations)):
+                self.nations[i].origin = origin_set[i]
+
+        if origin_set is not None:
+            if len(self.nations) > len(origin_set):
+                print("Not enough origins for all nations, using random origins for the rest.")
+
+        if expansion_rate_set is not None:
+            for i in range(len(self.nations)):
+                self.nations[i].expansion_rate = expansion_rate_set[i]
+
+        if expansion_rate_set is not None:
+            if len(self.nations) > len(expansion_rate_set):
+                print("Not enough expansion rates for all nations, using random expansion rates for the rest.")
+
+    def assign_stars_to_nations(self):
+        for star in self.stars:
+            closest_nation = None
+            min_weighted_distance = float('inf')
+            for nation in self.nations:
+                # Raw Euclidean distance
+                raw_distance = np.sqrt(
+                    (star.x - nation.origin["x"]) ** 2 +
+                    (star.y - nation.origin["y"]) ** 2 +
+                    (star.z - nation.origin["z"]) ** 2
+                )
+                # Apply weighting using expansion_rate as influence factor
+                weighted_distance = raw_distance / nation.expansion_rate  # Assuming higher expansion rates denote more influence
+
+                if weighted_distance < min_weighted_distance:
+                    closest_nation = nation
+                    min_weighted_distance = weighted_distance
+            closest_nation.nation_stars.append(star)
 
     def get_luminosities(self):
         return np.array([star.luminosity for star in self.stars])
@@ -216,7 +265,7 @@ class Starmap:
         luminosities = self.get_normalized_luminosities(weight=2)
 
         # Create a trace for the stars
-        trace = go.Scatter3d(
+        trace_stars = go.Scatter3d(
             x=[star.x for star in self.stars],
             y=[star.y for star in self.stars],
             z=[star.z for star in self.stars],
@@ -227,11 +276,27 @@ class Starmap:
                 colorscale='solar',  # choose a colorscale
                 opacity=0.8
             ),
-            text=[star.name for star in self.stars],
-            hoverinfo='text'
+            text=[
+                f"{star.name} ({next((nation.name for nation in self.nations if star in nation.nation_stars), 'Unassigned')})"
+                for star in self.stars],
+            hoverinfo='text',
         )
 
-        data = [trace]
+        # Create trace for the nations
+        trace_nations = go.Scatter3d(
+            x=[star.x for star in self.stars],
+            y=[star.y for star in self.stars],
+            z=[star.z for star in self.stars],
+            mode='markers',
+            marker=dict(
+                size=30,
+                color=[next((nation.nation_colour for nation in self.nations if star in nation.nation_stars), 'white')
+                       for star in self.stars],  # set color to the color of the nation the star is assigned to
+                opacity=.2
+            )
+        )
+
+        data = [trace_stars, trace_nations]
 
         # Create layout for the plot
         layout = go.Layout(
@@ -275,10 +340,21 @@ class Starmap:
         print("Lowest mass:", masses.min())
         return "-----"
 
+
+name_set = ["Haven", "New Frontier Alliance", "Sol Protectorate", "United Stellar Colonies", "Void Confederacy"]
+colour_set = [(0.5, 0.5, 0.5), (0.2, 0.8, 0.2), (0.8, 0.2, 0.2), (0.2, 0.2, 0.8), (0.8, 0.8, 0.2)]
+origin_set = [{"x": -200, "y": 100, "z": -100}, {"x": -50, "y": 100, "z": 90}, {"x": 0, "y": 0, "z": 0}, {"x": 50, "y": 50, "z": 20}, {"x": 100, "y": 100, "z": -50}]
+expansion_rate_set = [.7, .8, 1, 1, .9]
 actualmap = Starmap()
-actualmap.generate_stars(49)
-actualmap.generate_nations(5)
-actualmap.asign_stars_to_nations()
+actualmap.generate_stars(49,number_of_stars=500)
+actualmap.generate_nations(name_set=name_set, nation_colour_set=colour_set, origin_set=origin_set, expansion_rate_set=expansion_rate_set)
+actualmap.assign_stars_to_nations()
 print(actualmap)
 actualmap.plot()
 print(actualmap.used_star_names)
+print("-----")
+# Print all the nations
+for nation in actualmap.nations:
+    print(nation)
+    print(f"Number of stars in {nation.name}: {len(nation.nation_stars)}")
+    print("-----")
