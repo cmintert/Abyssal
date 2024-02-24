@@ -20,7 +20,7 @@ class Nation:
 
         if nation_colour is None:
             #if no colour is provided, generate a random colour
-            self.nation_colour = (random.random(), random.random(), random.random())
+            self.nation_colour = (np.random.random(), np.random.random(), np.random.random())
         else:
             self.nation_colour = nation_colour
 
@@ -57,11 +57,11 @@ class StarNames():
     # Combined star name generation function
 
     def generate_combined_star_name(self):
-        name = random.choice(self.prefixes) + random.choice(self.middles) + random.choice(self.suffixes)
-        constellation = random.choice(self.constellations)
-        designation = random.choice(self.designations)
-        catalog = random.choice(self.catalogs)
-        number = random.randint(1, 9999)
+        name = np.random.choice(self.prefixes) + np.random.choice(self.middles) + np.random.choice(self.suffixes)
+        constellation = np.random.choice(self.constellations)
+        designation = np.random.choice(self.designations)
+        catalog = np.random.choice(self.catalogs)
+        number = np.random.randint(1, 9999)
 
         # Format options for the combined approach
         format_options = [
@@ -74,7 +74,7 @@ class StarNames():
         ]
 
         # Randomly select a format option
-        return random.choice(format_options)
+        return np.random.choice(format_options)
 
 class Star:
     def __init__(self, id, name=None, x=None, y=None, z=None, r=None, theta=None, phi=None, spectral_class=None, luminosity=None):
@@ -152,8 +152,8 @@ class Starmap:
                 self.used_star_names.append(name)
                 return name
 
-    def generate_stars(self, seed=50, number_of_stars=500):
-        np.random.seed(seed)
+    def generate_stars(self, number_of_stars=500):
+
         for i in range(number_of_stars):
             # Generate random spherical coordinates
             r = 500 * (np.random.uniform(0, 1) ** (1/3))
@@ -345,8 +345,11 @@ name_set = ["Haven", "New Frontier Alliance", "Sol Protectorate", "United Stella
 colour_set = [(0.5, 0.5, 0.5), (0.2, 0.8, 0.2), (0.8, 0.2, 0.2), (0.2, 0.2, 0.8), (0.8, 0.8, 0.2)]
 origin_set = [{"x": -200, "y": 100, "z": -100}, {"x": -50, "y": 100, "z": 90}, {"x": 0, "y": 0, "z": 0}, {"x": 50, "y": 50, "z": 20}, {"x": 100, "y": 100, "z": -50}]
 expansion_rate_set = [.7, .8, 1, 1, .9]
+
+np.random.seed(50)
+
 actualmap = Starmap()
-actualmap.generate_stars(49,number_of_stars=500)
+actualmap.generate_stars(number_of_stars=500)
 actualmap.generate_nations(name_set=name_set, nation_colour_set=colour_set, origin_set=origin_set, expansion_rate_set=expansion_rate_set)
 actualmap.assign_stars_to_nations()
 print(actualmap)
