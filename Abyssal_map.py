@@ -2,86 +2,7 @@ import numpy as np
 import plotly.graph_objects as go
 
 from Map_Components import Nation, Star
-from Utility import scale_values_to_range
-
-
-
-class StarNames:
-
-    def __init__(self):
-        # Combined elements for star naming
-        self.prefixes = ["Al", "Be", "Si", "Ar", "Ma", "Cy", "De", "Er", "Fi", "Gi"]
-        self.middles = [
-            "pha",
-            "ri",
-            "gel",
-            "min",
-            "con",
-            "bel",
-            "dra",
-            "lon",
-            "nar",
-            "tel",
-        ]
-        self.suffixes = ["us", "a", "ae", "ion", "ium", "is", "or", "os", "um", "ix"]
-        self.constellations = [
-            "And",
-            "Aqr",
-            "Aql",
-            "Ari",
-            "Aur",
-            "Boo",
-            "Cyg",
-            "Gem",
-            "Her",
-            "Leo",
-            "Lyr",
-            "Ori",
-            "Peg",
-            "Per",
-            "Tau",
-            "UMa",
-            "Vir",
-        ]
-        self.designations = [
-            "Alpha",
-            "Beta",
-            "Gamma",
-            "Delta",
-            "Epsilon",
-            "Zeta",
-            "Eta",
-            "Theta",
-            "Iota",
-            "Kappa",
-        ]
-        self.catalogs = ["HD", "HIP"]
-
-    # Combined star name generation function
-
-    def generate_combined_star_name(self):
-        name = (
-            np.random.choice(self.prefixes)
-            + np.random.choice(self.middles)
-            + np.random.choice(self.suffixes)
-        )
-        constellation = np.random.choice(self.constellations)
-        designation = np.random.choice(self.designations)
-        catalog = np.random.choice(self.catalogs)
-        number = np.random.randint(1, 9999)
-
-        # Format options for the combined approach
-        format_options = [
-            f"{name}",
-            f"{name} {constellation}",
-            f"{designation} {constellation}",
-            f"{catalog} {number}",
-            f"{catalog} {number} ({name})",
-            f"{catalog} {number} ({designation} {constellation})",
-        ]
-
-        # Randomly select a format option
-        return np.random.choice(format_options)
+from Utility import scale_values_to_range, StarNames
 
 
 # Generate stars
@@ -89,21 +10,12 @@ class Starmap:
     def __init__(self):
         self.stars = []
         self.nations = []
-        self.used_star_names = []
         self.spectral_classes = {
             "G-Type": (0.6, 1.5),
             "K-Type": (0.08, 0.6),
             "M-Type": (0.02, 0.08),
         }
-        self.star_names = StarNames()
-
-    def generate_star_name(self):
-        """Generates a star name that is not already in use."""
-        while True:
-            name = self.star_names.generate_combined_star_name()
-            if name not in self.used_star_names:
-                self.used_star_names.append(name)
-                return name
+        self.used_star_names = []
 
     def generate_stars(self, number_of_stars=500):
 
@@ -118,12 +30,10 @@ class Starmap:
             )
             # Create random luminosity
             luminosity = np.random.uniform(*self.spectral_classes[spectral_class])
-            # Create unique name
-            name = self.generate_star_name()
             # Set star properties
             current_star = Star(
                 i,
-                name=name,
+                starmap=self,
                 r=r,
                 theta=theta,
                 phi=phi,

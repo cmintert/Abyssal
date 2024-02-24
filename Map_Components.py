@@ -1,5 +1,6 @@
 import math
 import numpy as np
+from Utility import StarNames
 
 SPECTRAL_CLASSES_LUM_MASS_RATIO = {
     "G-Type": 1 / 4,
@@ -68,6 +69,7 @@ class Star:
     def __init__(
         self,
         id,
+        starmap,
         name=None,
         x=None,
         y=None,
@@ -79,7 +81,9 @@ class Star:
         luminosity=None,
     ):
         self.id = id
-        self.name = name
+        self.star_map = starmap
+        if name is None:
+            self.name = self.generate_star_name()
         # Cartesian coordinates
         self.x = x
         self.y = y
@@ -99,6 +103,14 @@ class Star:
         # Alternatively, if Cartesian coordinates are provided, convert them to spherical
         elif x is not None and y is not None and z is not None:
             self.convert_to_spherical()
+
+    def generate_star_name(self):
+        """Generates a random name for the star. Make name unique for each star."""
+        while True:
+            name = StarNames().generate_combined_star_name()
+            if name not in self.star_map.used_star_names:
+                self.star_map.used_star_names.append(name)
+                return name
 
     def convert_to_cartesian(self):
         """Converts spherical coordinates to Cartesian coordinates and updates the star's position."""
@@ -241,7 +253,7 @@ class Planet(SmallBody):
 
         # Calculate the planet's rotation period
         if habitable:
-            self.rotation_period = np.random.uniform(20, 30) # Hours
+            self.rotation_period = np.random.uniform(20, 30)  # Hours
         else:
             self.rotation_period = self.generate_rotation_period()
 
@@ -250,7 +262,6 @@ class Planet(SmallBody):
             self.has_magnetic_field = True
         else:
             self.has_magnetic_field = self.generate_magnetic_field()
-
 
     def generate_planet_mass(star_mass, orbit_distance, goldilocks_zone):
         """
@@ -451,14 +462,19 @@ class Planet(SmallBody):
         """
         # Base ranges on composition, assuming terrestrial planets rotate faster due to historical collisions and gas giants rotate slower due to their size
         if self.planet_composition == "Gas Giant":
-            rotation_period = np.random.uniform(10, 24)  # Hours, gas giants tend to have faster rotation periods
+            rotation_period = np.random.uniform(
+                10, 24
+            )  # Hours, gas giants tend to have faster rotation periods
         elif self.planet_composition == "Ice Giant":
-            rotation_period = np.random.uniform(16, 22)  # Hours, similar to Uranus and Neptune
+            rotation_period = np.random.uniform(
+                16, 22
+            )  # Hours, similar to Uranus and Neptune
         else:  # Terrestrial
-            rotation_period = np.random.uniform(20, 40)  # Hours, Earth rotates once every ~24 hours
+            rotation_period = np.random.uniform(
+                20, 40
+            )  # Hours, Earth rotates once every ~24 hours
 
         return rotation_period
-
 
     def generate_magnetic_field(self):
         """
@@ -473,12 +489,20 @@ class Planet(SmallBody):
             mass_threshold = 0.5  # Minimum mass to potentially have a magnetic field, in Earth masses
             rotation_threshold = 1.5  # Maximum rotation period to likely maintain a magnetic field, in Earth days
 
-            if self.mass >= mass_threshold and self.rotation_period <= rotation_threshold:
-                has_magnetic_field = np.random.choice([True, False], p=[0.8, 0.2])  # 80% chance if conditions are met
+            if (
+                self.mass >= mass_threshold
+                and self.rotation_period <= rotation_threshold
+            ):
+                has_magnetic_field = np.random.choice(
+                    [True, False], p=[0.8, 0.2]
+                )  # 80% chance if conditions are met
             else:
-                has_magnetic_field = np.random.choice([True, False], p=[0.3, 0.7])  # 30% chance otherwise
+                has_magnetic_field = np.random.choice(
+                    [True, False], p=[0.3, 0.7]
+                )  # 30% chance otherwise
 
         return has_magnetic_field
+
 
 class Planetary_System:
     def __init__(self, star, orbits=[], celestial_bodies=None):
