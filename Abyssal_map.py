@@ -1,58 +1,9 @@
-import random
-import matplotlib.pyplot as plt
 import numpy as np
-from mpl_toolkits.mplot3d import Axes3D
-import math
 import plotly.graph_objects as go
+
+from Map_Components import Nation, Star
 from Utility import scale_values_to_range
 
-SPECTRAL_CLASSES_LUM_MASS_RATIO = {
-    "G-Type": 1 / 4,
-    "K-Type": 1 / 3.5,
-    "M-Type": 1 / 3,
-}
-
-
-class Nation:
-    def __init__(
-        self,
-        name,
-        origin=None,
-        expansion_rate=1,
-        nation_colour=None,
-        space_boundary=500,
-    ):
-        self.name = name
-        self.expansion_rate = expansion_rate
-        self.current_radius = 0
-        self.nation_stars = []
-
-        if nation_colour is None:
-            # if no colour is provided, generate a random colour
-            self.nation_colour = (
-                np.random.random(),
-                np.random.random(),
-                np.random.random(),
-            )
-        else:
-            self.nation_colour = nation_colour
-
-        if origin is None:
-            # If no origin is provided, generate a random point within the boundary
-            self.origin = {
-                "x": np.random.uniform(-space_boundary, space_boundary),
-                "y": np.random.uniform(-space_boundary, space_boundary),
-                "z": np.random.uniform(-space_boundary, space_boundary),
-            }
-        else:
-            self.origin = origin
-
-    def expand_influence(self):
-        """Expand the nation's sphere of influence based on its expansion rate."""
-        self.current_radius += self.expansion_rate
-
-    def __str__(self):
-        return f"{self.name}: Origin at {self.origin}, Current Radius: {self.current_radius}, Expansion Rate: {self.expansion_rate}"
 
 
 class StarNames:
@@ -131,79 +82,6 @@ class StarNames:
 
         # Randomly select a format option
         return np.random.choice(format_options)
-
-
-class Star:
-    def __init__(
-        self,
-        id,
-        name=None,
-        x=None,
-        y=None,
-        z=None,
-        r=None,
-        theta=None,
-        phi=None,
-        spectral_class=None,
-        luminosity=None,
-    ):
-        self.id = id
-        self.name = name
-        # Cartesian coordinates
-        self.x = x
-        self.y = y
-        self.z = z
-        # Spherical coordinates
-        self.r = r
-        self.theta = theta
-        self.phi = phi
-        # Class and Luminosity
-        self.spectral_class = spectral_class
-        self.luminosity = luminosity
-        # Mass
-        self.mass = self.calculate_mass()
-        # If spherical coordinates are provided, convert them to Cartesian
-        if r is not None and theta is not None and phi is not None:
-            self.convert_to_cartesian()
-        # Alternatively, if Cartesian coordinates are provided, convert them to spherical
-        elif x is not None and y is not None and z is not None:
-            self.convert_to_spherical()
-
-    def convert_to_cartesian(self):
-        """Converts spherical coordinates to Cartesian coordinates and updates the star's position."""
-        self.x = self.r * math.sin(self.phi) * math.cos(self.theta)
-        self.y = self.r * math.sin(self.phi) * math.sin(self.theta)
-        self.z = self.r * math.cos(self.phi)
-
-    def convert_to_spherical(self):
-        """Converts Cartesian coordinates to spherical coordinates and updates the star's position."""
-        self.r = math.sqrt(self.x**2 + self.y**2 + self.z**2)
-        self.theta = math.atan2(self.y, self.x)
-        self.phi = math.acos(self.z / self.r)
-
-    def set_spectral_class(self, spectral_class):
-        self.spectral_class = spectral_class
-
-    def set_luminosity(self, luminosity):
-        self.luminosity = luminosity
-        self.mass = self.calculate_mass()
-        print(
-            f"Mass of star {self.id} is changed to {self.mass} fitting the new luminosity."
-        )
-
-    def calculate_mass(self):
-        """Calculates the mass of the star based on its luminosity and spectral class."""
-        if (
-            self.luminosity is not None
-            and self.spectral_class in SPECTRAL_CLASSES_LUM_MASS_RATIO
-        ):
-            exponent = SPECTRAL_CLASSES_LUM_MASS_RATIO[self.spectral_class]
-            mass_relative_to_sun = self.luminosity**exponent
-            return mass_relative_to_sun
-        raise ValueError("Luminosity or spectral class not set.")
-
-    def __str__(self):
-        return f"Star ID: {self.id}, Cartesian: ({self.x}, {self.y}, {self.z}), Spherical: (r={self.r}, theta={self.theta}, phi={self.phi})"
 
 
 # Generate stars

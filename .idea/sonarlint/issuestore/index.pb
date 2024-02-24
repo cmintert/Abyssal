@@ -26,3 +26,7 @@ Q.idea/sonarlint/securityhotspotstore/1/e/1e9075f5bf079c01ef2c910709e91a497d2620
 :
 
 Utility.py,9\8\98a47f2d471d8e8bd38d3338937a39e786d9963c
+A
+Map_Components.py,2\5\25d600be374d388b8112489d3e32c7ee8a9ac5fa
+F
+test_map_components.py,a\7\a752e90d720407255acbf0dc8f304d50789fc374
