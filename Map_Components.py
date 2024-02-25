@@ -52,16 +52,16 @@ class Nation:
 
 
 class SmallBody:
-    def __init__(self, name, body_type, distance_from_star, additional_info=None):
+    def __init__(self, name, body_type=None, orbit=None, additional_info=None):
         self.name = name
         self.body_type = body_type  # Planet, Moon, Asteroid, etc.
-        self.distance_from_star = distance_from_star
+        self.orbit = orbit # Distance from the star in AU
         self.additional_info = additional_info
 
     def __str__(self):
         info = f", {self.additional_info}" if self.additional_info else ""
         return (
-            f"{self.name}: {self.body_type} at {self.distance_from_star:.2f} AU{info}"
+            f"{self.name}: {self.body_type} at {self.orbit:.2f} AU{info}"
         )
 
 
@@ -79,6 +79,7 @@ class Star:
         phi=None,
         spectral_class=None,
         luminosity=None,
+        planetary_system=None,
     ):
         self.id = id
         self.star_map = starmap
@@ -97,6 +98,8 @@ class Star:
         self.luminosity = luminosity
         # Mass
         self.mass = self.calculate_mass()
+        # Planets
+        self.planetary_system = planetary_system
         # If spherical coordinates are provided, convert them to Cartesian
         if r is not None and theta is not None and phi is not None:
             self.convert_to_cartesian()
@@ -164,6 +167,7 @@ class Planet(SmallBody):
     def __init__(
         self,
         star,
+        name=None,
         mass=None,
         planet_composition=None,
         orbital_time=None,
@@ -175,8 +179,15 @@ class Planet(SmallBody):
         presence_of_water=None,
         radius=None,
         albedo=None,
+        orbit=None
     ):
-        super().__init__(name, "Planet", orbital_distance)
+        if name is None:
+            name = f"Planet {len(star.planetary_system.celestial_bodies) + 1}"
+            # Set a default orbital_distance if not provided
+        if orbit is None:
+            orbit = 1  # Default value or a generated value based on some logic
+        super().__init__(name, "Planet", orbit)
+
         self.star = star
         self.mass = mass
         self.planet_composition = planet_composition
@@ -201,7 +212,7 @@ class Planet(SmallBody):
         - habitable: Whether the planet is within the habitable zone.
         """
         # Define the planet's name based on its orbit
-        name = f"Planet {len(star.planets) + 1}"
+        name = f"Planet {len(star.planetary_system.celestial_bodies) + 1}"
 
         # Calculate the mass of the planet
         if habitable:
@@ -216,7 +227,7 @@ class Planet(SmallBody):
             self.composition = "Rocky"
         else:
             self.composition = self.generate_planet_composition(
-                mass, self.orbit, star.luminosity
+                self.mass, self.orbit, star.luminosity
             )
 
         # Calculate the planet's atmosphere
@@ -226,7 +237,7 @@ class Planet(SmallBody):
             )
         else:
             self.atmosphere = self.generate_atmosphere(
-                mass, orbit, star.luminosity, self.composition
+                self.mass, self.orbit, star.luminosity, self.composition
             )
 
         # Calculate the planet's surface temperature
@@ -234,7 +245,7 @@ class Planet(SmallBody):
             self.surface_temperature = np.random.uniform(-5, 30)  # In degrees Celsius
         else:
             self.surface_temperature = self.estimate_surface_temperature(
-                orbit, star.luminosity, self.atmosphere
+                self.orbit, star.luminosity, self.atmosphere
             )
 
         # Calculate the presence of water
@@ -242,7 +253,7 @@ class Planet(SmallBody):
             self.presence_of_water = "Liquid water"
         else:
             self.presence_of_water = self.estimate_water_presence(
-                orbit, mass, self.star, self.composition, self.surface_temperature
+                self.orbit, self.mass, self.star, self.composition, self.surface_temperature
             )
 
         # Calculate the planet's axial tilt
@@ -255,14 +266,15 @@ class Planet(SmallBody):
         if habitable:
             self.rotation_period = np.random.uniform(20, 30)  # Hours
         else:
-            self.rotation_period = self.generate_rotation_period()
+            self.rotation_period = self.generate_rotation_period(self)
 
         # Calculate the planet's magnetic field
         if habitable:
             self.has_magnetic_field = True
         else:
-            self.has_magnetic_field = self.generate_magnetic_field()
+            self.has_magnetic_field = self.generate_magnetic_field(self)
 
+    @staticmethod
     def generate_planet_mass(star_mass, orbit_distance, goldilocks_zone):
         """
         Generate a planet's mass based on the star's mass and its orbit.
@@ -302,7 +314,7 @@ class Planet(SmallBody):
             mass = np.random.uniform(5, 50)
 
         return mass
-
+    @staticmethod
     def generate_planet_composition(mass, orbit_distance, star_luminosity):
         """
         Determines the composition of a planet based on its mass, orbit distance,
@@ -333,7 +345,7 @@ class Planet(SmallBody):
             composition = "Gas Giant"
 
         return composition
-
+    @staticmethod
     def generate_atmosphere(mass, orbit_distance, star_luminosity, composition):
         """
         Generates a simplified description of a planet's atmosphere based on its mass,
@@ -366,7 +378,7 @@ class Planet(SmallBody):
             return "Very thick atmosphere of hydrogen and helium"
         else:
             return "Unknown atmospheric composition"
-
+    @staticmethod
     def estimate_surface_temperature(
         orbit_distance, star_luminosity, atmosphere_description
     ):
@@ -400,7 +412,7 @@ class Planet(SmallBody):
         estimated_temp = baseline_temp + temperature_adjustment
 
         return estimated_temp
-
+    @staticmethod
     def estimate_water_presence(
         orbit_distance, mass, star, composition, surface_temperature
     ):
@@ -441,8 +453,8 @@ class Planet(SmallBody):
             water_presence = "Low likelihood of liquid water"
 
         return water_presence
-
-    def generate_axial_tilt(self):
+    @staticmethod
+    def generate_axial_tilt():
         """
         Generate the axial tilt of the planet based on its mass and distance from the star.
         """
@@ -454,7 +466,7 @@ class Planet(SmallBody):
             tilt, 0, 90
         )  # Clamp the values to ensure they're within realistic bounds
         return tilt
-
+    @staticmethod
     def generate_rotation_period(self):
         """
         Generates a rotation period for the planet, with different ranges based on planet composition.
@@ -475,7 +487,7 @@ class Planet(SmallBody):
             )  # Hours, Earth rotates once every ~24 hours
 
         return rotation_period
-
+    @staticmethod
     def generate_magnetic_field(self):
         """
         Generates a boolean value indicating the presence of a significant magnetic field.
@@ -561,16 +573,18 @@ class Planetary_System:
                 body = SmallBody(
                     name=f"Asteroid Belt {len(self.celestial_bodies) + 1}",
                     body_type="Asteroid Belt",
-                    distance_from_star=orbit,
+                    orbit=orbit,
                     additional_info="Varied density",
                 )
             else:
+                planet = Planet(star=self.star)
                 if orbit in self.star.goldilocks_zone():
-                    body = Planet.generate_planet(orbit, self.star, habitable=True)
+                    planet.generate_planet(orbit, self.star, habitable=True)
                 else:
-                    body = Planet.generate_planet(orbit, self.star, habitable=False)
-
+                    planet.generate_planet(orbit, self.star, habitable=False)
+                body=planet
             self.celestial_bodies.append(body)
+        print (f"Generated {body.name} at {orbit} AU at {self.star.name}")
 
     def __str__(self):
         bodies_str = ", ".join([str(body) for body in self.celestial_bodies])

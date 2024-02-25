@@ -1,7 +1,7 @@
 import numpy as np
 import plotly.graph_objects as go
 
-from Map_Components import Nation, Star
+from Map_Components import Nation, Star, Planetary_System, SmallBody, Planet
 from Utility import scale_values_to_range, StarNames
 
 
@@ -40,6 +40,12 @@ class Starmap:
                 spectral_class=spectral_class,
                 luminosity=luminosity,
             )
+            # generate the planetary system
+            current_star.planetary_system = Planetary_System(current_star)
+            # Generate orbits
+            current_star.planetary_system.generate_orbits(include_habitable_zone=True, num_orbits=3)
+            # generate planets for each orbit
+            current_star.planetary_system.generate_planets_and_asteroid_belts()
             # add star to map
             (self.stars.append(current_star))
         # Add noise to star locations
