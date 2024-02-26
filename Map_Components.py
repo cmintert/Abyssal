@@ -14,12 +14,10 @@ class Nation:
         self,
         name,
         origin=None,
-        expansion_rate=1,
         nation_colour=None,
         space_boundary=500,
     ):
         self.name = name
-        self.expansion_rate = expansion_rate
         self.current_radius = 0
         self.nation_stars = []
 
