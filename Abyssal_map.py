@@ -238,7 +238,7 @@ class Starmap:
         layout = self.define_layout()
 
         self.create_figure(
-            layout, trace_nations, trace_planets, trace_stars, html=False
+            layout, trace_nations, trace_planets, trace_stars, html=True
         )
 
     def create_figure(
@@ -425,7 +425,7 @@ expansion_rate_set = [0.7, 0.8, 1, 1, 0.9]
 np.random.seed(50)
 
 actual_map = Starmap()
-actual_map.generate_stars(number_of_stars=10)
+actual_map.generate_stars(number_of_stars=500)
 actual_map.generate_nations(
     name_set=name_set,
     nation_colour_set=colour_set,
