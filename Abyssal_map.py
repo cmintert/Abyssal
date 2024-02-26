@@ -1,11 +1,8 @@
 import numpy as np
-
 import plotly.graph_objects as go
 from plotly.offline import plot
-
 from Map_Components import Nation, Star, Planetary_System
 from Utility import scale_values_to_range
-
 
 # Generate stars
 class Starmap:
@@ -13,59 +10,119 @@ class Starmap:
         self.stars = []
         self.nations = []
         self.spectral_classes = {
+            "O-Type": (16, 300),
+            "B-Type": (2.1, 16),
+            "A-Type": (1.4, 2.1),
+            "F-Type": (1.04, 1.4),
             "G-Type": (0.6, 1.5),
             "K-Type": (0.08, 0.6),
             "M-Type": (0.02, 0.08),
         }
         self.used_star_names = []
 
-    def generate_stars(self, number_of_stars=500):
+    def generate_stars(self, number_of_stars=500, map_radius=500):
 
-        for i in range(number_of_stars):
-            # Generate random spherical coordinates
-            r = 500 * (np.random.uniform(0, 1) ** (1 / 3))
-            theta = 2 * np.random.uniform(0, 1) * np.pi
-            phi = np.arccos(2 * np.random.uniform(0, 1) - 1)
-            # Create random spectral class
-            spectral_class = np.random.choice(
-                list(self.spectral_classes.keys()), p=[0.1, 0.2, 0.7]
-            )
-            # Create random luminosity
-            luminosity = np.random.uniform(*self.spectral_classes[spectral_class])
-            # Set star properties
-            current_star = Star(
-                i,
-                starmap=self,
-                r=r,
-                theta=theta,
-                phi=phi,
-                spectral_class=spectral_class,
-                luminosity=luminosity,
-            )
+        for id in range(number_of_stars):
+            phi, r, theta = self.random_spherical_coordinate(map_radius)
+            spectral_class = self.random_spectral_class()
+            luminosity = self.random_luminosity(spectral_class)
+
+            current_star = self.instance_star(id, luminosity, phi, r, spectral_class, theta)
+
             # Instance the planetary system
             current_star.planetary_system = Planetary_System(current_star)
-            # Generate orbits
-            # generate random integer number between 1 and 10 for number of orbits
-            orbits = np.random.randint(1, 11)
-            current_star.planetary_system.generate_orbits(
-                include_habitable_zone=True, num_orbits=orbits
-            )
+
+            # Generate orbits for the star
+            self.generate_orbits_for_star(current_star, number_of_orbits=10, include_habitable_zone=True)
+
             # generate planets for each orbit
             current_star.planetary_system.generate_planets_and_asteroid_belts()
+
             # add star to map
             (self.stars.append(current_star))
         # Add noise to star locations
         self.star_location_noise()
         self.star_location_stretch()
 
-    def star_location_noise(self, noise=10):
+    def generate_orbits_for_star(self, current_star, number_of_orbits=3, include_habitable_zone = True):
+        """
+        Generates orbits for a given star in the starmap.
 
+        Args:
+                current_star (Star): The star for which to generate orbits.
+                number_of_orbits (int, optional): The maximum number of orbits to generate. Defaults to 3.
+                include_habitable_zone (bool, optional): Whether to include a habitable zone in the generated orbits. Defaults to True.
+        """
+        orbits_count = np.random.randint(1, number_of_orbits+1)
+        current_star.planetary_system.generate_orbits(
+            include_habitable_zone, num_orbits=orbits_count
+        )
+
+    def instance_star(self, id, luminosity, phi, r, spectral_class, theta):
+        # Set star properties
+        current_star = Star(
+            id,
+            starmap=self,
+            r=r,
+            theta=theta,
+            phi=phi,
+            spectral_class=spectral_class,
+            luminosity=luminosity,
+        )
+        return current_star
+
+    def random_luminosity(self, spectral_class):
+        # Create random luminosity
+        luminosity = np.random.uniform(*self.spectral_classes[spectral_class])
+        return luminosity
+
+    def random_spectral_class(self, include_habitable_zone = True):
+        # Create random spectral class
+        if include_habitable_zone:
+            # choose only G K or M Type stars
+            useable_spectral_classes = ["G-Type", "K-Type", "M-Type"]
+            spectral_class = np.random.choice(
+                useable_spectral_classes, p=[0.3, 0.3, 0.4] # shifting distribution to G and K type stars, more like SOL
+            )
+        else:
+            spectral_class = np.random.choice(
+                list(self.spectral_classes.keys()), p = [0.00003,0.13,0.6,3,7.6,12.1,76.5]
+            )
+        return spectral_class
+
+    def random_spherical_coordinate(self, map_radius):
+        # Generate random spherical coordinates
+        r = map_radius * (np.random.uniform(0, 1) ** (1 / 3))
+        theta = 2 * np.random.uniform(0, 1) * np.pi
+        phi = np.arccos(2 * np.random.uniform(0, 1) - 1)
+        return phi, r, theta
+
+    def star_location_noise(self, noise=10):
+        """
+        Adds noise to the location of each star in the starmap.
+
+        This method iterates over each star in the starmap and adds a random offset to the x, y, and z coordinates of the star.
+        The offset is a random float between -noise and noise.
+
+        Args:
+            noise (int, optional): The maximum absolute value of the offset to be added to the star's location. Defaults to 10.
+        """
         for star in self.stars:
             star.x += np.random.uniform(-noise, noise)
             star.y += np.random.uniform(-noise, noise)
             star.z += np.random.uniform(-noise, noise)
 
     def star_location_stretch(self, stretch_x=1, stretch_y=1, stretch_z=0.6):
+        """
+        Stretches the location of each star in the starmap along the x, y, and z axes.
+
+        This method iterates over each star in the starmap and multiplies the x, y, and z coordinates of the star by the corresponding stretch factors.
+
+        Args:
+            stretch_x (float, optional): The factor by which to stretch the x-coordinate of each star's location. Defaults to 1.
+            stretch_y (float, optional): The factor by which to stretch the y-coordinate of each star's location. Defaults to 1.
+            stretch_z (float, optional): The factor by which to stretch the z-coordinate of each star's location. Defaults to 0.6.
+        """
         for star in self.stars:
             star.x *= stretch_x
             star.y *= stretch_y
@@ -211,6 +268,16 @@ class Starmap:
         return layout
 
     def trace_planets(self):
+        """
+        Creates a trace for the planets in the starmap.
+
+        This method iterates over each star in the starmap, and for each star, it iterates over its planets.
+        For each planet, it calculates its position in the 3D space, its mass, and its color based on its habitability.
+        It then creates a Scatter3d trace with this information.
+
+        Returns:
+            trace_planets (plotly.graph_objs._scatter3d.Scatter3d): A Scatter3d trace representing the planets in the starmap.
+        """
         planet_x = []
         planet_y = []
         planet_z = []
