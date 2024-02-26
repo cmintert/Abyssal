@@ -40,10 +40,14 @@ class Starmap:
                 spectral_class=spectral_class,
                 luminosity=luminosity,
             )
-            # generate the planetary system
+            # Instance the planetary system
             current_star.planetary_system = Planetary_System(current_star)
             # Generate orbits
-            current_star.planetary_system.generate_orbits(include_habitable_zone=True, num_orbits=3)
+            # generate random integer number between 1 and 10 for number of orbits
+            orbits = np.random.randint(1, 11)
+            current_star.planetary_system.generate_orbits(
+                include_habitable_zone=True, num_orbits=orbits
+            )
             # generate planets for each orbit
             current_star.planetary_system.generate_planets_and_asteroid_belts()
             # add star to map
@@ -174,12 +178,13 @@ class Starmap:
                 opacity=1,
             ),
             text=[
-                f"{star.name}{', ' + star.spectral_class if star.spectral_class is not None else ''}"
+                f"{star.name[0]}{', ' + star.spectral_class if star.spectral_class is not None else ''}"
                 for star in self.stars
             ],
             hoverinfo="text",
             name="Stars",
         )
+
 
         # Create trace for the nations
         trace_nations = go.Scatter3d(
@@ -206,7 +211,56 @@ class Starmap:
             hoverinfo="none",
         )
 
-        data = [trace_stars, trace_nations]
+        # Create trace for the planets
+
+        planet_x = []
+        planet_y = []
+        planet_z = []
+        planet_mass = []
+        planet_colors = []
+
+        # Offset for placing planetary dots to the right of the star
+
+        base_offset = 1.5
+        offset_increment = 1
+
+        for star in self.stars:
+            offset = base_offset
+            for planet in star.planetary_system.celestial_bodies:
+                # Assume each star's planetary system has a method or attribute to check habitability
+                is_habitable = (
+                    hasattr(planet, "habitable") and planet.habitable
+                )  # Placeholder condition
+                planet_color = "green" if is_habitable else "black"
+
+                # Add the planet dot position and color
+                planet_x.append(star.x + offset)
+                planet_y.append(star.y)
+                planet_z.append(star.z)
+
+                if planet.body_type == "Planet":
+                    planet_mass.append(planet.mass)
+                else:
+                    planet_mass.append(1)
+
+                planet_colors.append(planet_color)
+
+                # Increment the offset for the next planet
+                offset += offset_increment
+
+        # Create trace for the planetary dots
+        trace_planets = go.Scatter3d(
+            x=planet_x,
+            y=planet_y,
+            z=planet_z,
+            mode="markers",
+            marker=dict(
+                size=scale_values_to_range(planet_mass, 5, 10),  # Adjust size as needed
+                color=planet_colors,  # Color based on habitability
+            ),
+            name="trace_planets",
+        )
+        data = [trace_stars, trace_nations, trace_planets]
 
         # Create layout for the plot
         layout = go.Layout(
@@ -278,7 +332,7 @@ expansion_rate_set = [0.7, 0.8, 1, 1, 0.9]
 np.random.seed(50)
 
 actualmap = Starmap()
-actualmap.generate_stars(number_of_stars=20)
+actualmap.generate_stars(number_of_stars=10)
 actualmap.generate_nations(
     name_set=name_set,
     nation_colour_set=colour_set,
@@ -288,10 +342,11 @@ actualmap.generate_nations(
 actualmap.assign_stars_to_nations()
 print(actualmap)
 actualmap.plot()
-print(actualmap.used_star_names)
-print("-----")
-# Print all the nations
-for nation in actualmap.nations:
-    print(nation)
-    print(f"Number of stars in {nation.name}: {len(nation.nation_stars)}")
+
+# Print stars and planetary system names
+for star in actualmap.stars:
+    print(star.name[0])
     print("-----")
+
+    for planet in star.planetary_system.celestial_bodies:
+        print(planet.name)

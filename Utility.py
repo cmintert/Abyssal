@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def scale_values_to_range(values, new_min=0, new_max=1):
     """
     Scale an array of values to a new specified range.
@@ -102,4 +103,81 @@ class StarNames:
         ]
 
         # Randomly select a format option
-        return np.random.choice(format_options)
+        return [
+            np.random.choice(format_options),
+            name,
+            constellation,
+            designation,
+            catalog,
+            number,
+        ]
+
+
+class PlanetNames:
+    def __init__(self, star, orbit_number=0):
+        # Combined elements for planet naming
+        self.prefixes = ["Al", "Be", "Si", "Ar", "Ma", "Cy", "De", "Er", "Fi", "Gi"]
+        self.middles = [
+            "pha",
+            "ri",
+            "gel",
+            "min",
+            "con",
+            "bel",
+            "dra",
+            "lon",
+            "nar",
+            "tel",
+        ]
+        self.suffixes = ["us", "a", "ae", "ion", "ium", "is", "or", "os", "um", "ix"]
+        self.designations = [
+            "Alpha",
+            "Beta",
+            "Gamma",
+            "Delta",
+            "Epsilon",
+            "Zeta",
+            "Eta",
+            "Theta",
+            "Iota",
+            "Kappa",
+            "Lambda",
+            "Mu",
+            "Nu",
+            "Xi",
+            "Omicron",
+            "Pi",
+            "Rho",
+            "Sigma",
+        ]
+        self.star = star
+        self.orbit_number = orbit_number
+
+        # Combined planet name generation function
+
+    def generate_combined_planet_name(self):
+        name = (
+            np.random.choice(self.prefixes)
+            + np.random.choice(self.middles)
+            + np.random.choice(self.suffixes)
+        )
+        star_name = self.star.name
+        orbit_number = self.orbit_number
+
+        # transform orbit number to designation
+        designation = self.designations[orbit_number]
+
+        # transform orbit_number to roman numeral
+        roman_numerals = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV", "XV"]
+        orbital_roman_numeral = roman_numerals[orbit_number]
+
+        # Format options for the combined approach
+        format_options = [
+            f"{name}",
+            f"{star_name[1]} {orbital_roman_numeral}",
+        ]
+
+        # Randomly select a format option
+        name= np.random.choice(format_options)
+        print (f"Name: {name} <-----")
+        return name
