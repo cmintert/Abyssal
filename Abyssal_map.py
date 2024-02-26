@@ -1,5 +1,7 @@
 import numpy as np
+
 import plotly.graph_objects as go
+from plotly.offline import plot
 
 from Map_Components import Nation, Star, Planetary_System, SmallBody, Planet
 from Utility import scale_values_to_range, StarNames
@@ -282,6 +284,7 @@ class Starmap:
         )
 
         fig = go.Figure(data=data, layout=layout)
+        plot(fig, filename='Abyssal_showcase.html', output_type='file')
         fig.show()
 
     def __str__(self):
