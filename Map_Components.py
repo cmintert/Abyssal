@@ -238,7 +238,7 @@ class Planet(SmallBody):
         orbit=None,
         habitable=False,
     ):
-        super().__init__(name, star,"Planet", orbit)
+        super().__init__(name, star, "Planet", orbit)
 
         self.star = star
         self.mass = mass
@@ -253,7 +253,6 @@ class Planet(SmallBody):
         self.radius = radius
         self.albedo = albedo
         self.habitable = habitable
-
 
     def __str__(self):
         return f"Planet: {self.name}, Star: {self.star.name}, Mass: {self.mass}, Orbital Distance: {self.orbit}, Planet Composition: {self.planet_composition}, Orbital Time: {self.orbital_time}, Rotation Period: {self.rotation_period}, Tilt: {self.tilt}, Moons: {self.moons}, Atmosphere: {self.atmosphere}, Surface Temperature: {self.surface_temperature}, Presence of Water: {self.presence_of_water}, Radius: {self.radius}, Albedo: {self.albedo}"
@@ -273,7 +272,9 @@ class Planet(SmallBody):
             self.habitable = False
 
         # Define the planet's name based on its orbit
-        name = PlanetNames(star, self.return_orbit_number()).generate_combined_planet_name()
+        name = PlanetNames(
+            star, self.return_orbit_number()
+        ).generate_combined_planet_name()
         self.name = name
 
         # Calculate the mass of the planet

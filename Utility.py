@@ -168,7 +168,23 @@ class PlanetNames:
         designation = self.designations[orbit_number]
 
         # transform orbit_number to roman numeral
-        roman_numerals = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV", "XV"]
+        roman_numerals = [
+            "I",
+            "II",
+            "III",
+            "IV",
+            "V",
+            "VI",
+            "VII",
+            "VIII",
+            "IX",
+            "X",
+            "XI",
+            "XII",
+            "XIII",
+            "XIV",
+            "XV",
+        ]
         orbital_roman_numeral = roman_numerals[orbit_number]
 
         # Format options for the combined approach
@@ -178,6 +194,5 @@ class PlanetNames:
         ]
 
         # Randomly select a format option
-        name= np.random.choice(format_options)
-        print (f"Name: {name} <-----")
+        name = np.random.choice(format_options)
         return name

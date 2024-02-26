@@ -185,7 +185,6 @@ class Starmap:
             name="Stars",
         )
 
-
         # Create trace for the nations
         trace_nations = go.Scatter3d(
             x=[star.x for star in self.stars],
@@ -218,6 +217,7 @@ class Starmap:
         planet_z = []
         planet_mass = []
         planet_colors = []
+        planet_names = []
 
         # Offset for placing planetary dots to the right of the star
 
@@ -245,6 +245,7 @@ class Starmap:
 
                 planet_colors.append(planet_color)
 
+                planet_names.append(planet.name)
                 # Increment the offset for the next planet
                 offset += offset_increment
 
@@ -258,7 +259,9 @@ class Starmap:
                 size=scale_values_to_range(planet_mass, 5, 10),  # Adjust size as needed
                 color=planet_colors,  # Color based on habitability
             ),
+            text=planet_names,
             name="trace_planets",
+            hoverinfo="text",
         )
         data = [trace_stars, trace_nations, trace_planets]
 
