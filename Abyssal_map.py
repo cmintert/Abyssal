@@ -234,23 +234,38 @@ class Starmap:
 
         trace_planets = self.trace_planets()
 
+        # Create trace for the planetary orbits
+        trace_planets_orbits = self.trace_planets_orbits()
+
         # Create layout for the plot
         layout = self.define_layout()
 
         self.create_figure(
-            layout, trace_nations, trace_planets, trace_stars, html=True
+            layout, trace_nations, trace_planets, trace_stars, trace_planets_orbits,html=False
         )
 
     def create_figure(
-        self, layout, trace_nations, trace_planets, trace_stars, html=False
+        self, layout, trace_nations, trace_planets, trace_stars, trace_planets_orbits, html=True
     ):
-        data = [trace_stars, trace_nations, trace_planets]
+        data = [trace_stars, trace_nations, trace_planets,trace_planets_orbits]
         fig = go.Figure(data=data, layout=layout)
         if html:
             plot(fig, filename="Abyssal_showcase.html", output_type="file")
         fig.show()
 
     def define_layout(self):
+        """
+        Defines the layout for the 3D plot of the starmap.
+
+        This method creates a layout for the 3D plot with the following characteristics:
+        - No margins
+        - X, Y, and Z axes titled as "X", "Y", and "Z" respectively
+        - A camera positioned at (1.5, 1.5, 1.5) with its up direction along the Z-axis
+        - A legend positioned at the top left corner of the plot
+
+        Returns:
+            layout (plotly.graph_objs.Layout): A Layout object representing the layout of the 3D plot.
+        """
         layout = go.Layout(
             margin=dict(l=0, r=0, b=0, t=0),
             scene=dict(
@@ -267,12 +282,72 @@ class Starmap:
         )
         return layout
 
+    def trace_planets_orbits(self):
+        """
+        Creates a trace for the orbits of the planets in the starmap.
+
+        This method iterates over each star in the starmap, and for each star, it iterates over its planets.
+        For each planet, it calculates the points of its orbit in the 3D space.
+        It then creates a Scatter3d trace with this information.
+
+        Returns:
+            trace_planets_orbits (plotly.graph_objs._scatter3d.Scatter3d): A Scatter3d trace representing the orbits of the planets in the starmap.
+        """
+        orbit_x = []
+        orbit_y = []
+        orbit_z = []
+
+        # Get all orbits and normalize them
+        all_orbits = [planet.orbit for star in self.stars for planet in star.planetary_system.celestial_bodies]
+        normalized_orbits = scale_values_to_range(all_orbits, 3, 17)
+
+        orbit_index = 0
+        for star in self.stars:
+            for planet in star.planetary_system.celestial_bodies:
+                # Use the normalized orbit as the offset
+                offset = normalized_orbits[orbit_index]
+                orbit_index += 1
+
+                # Initialize a temporary list to store the orbit's points
+                temp_orbit_x = []
+                temp_orbit_y = []
+                temp_orbit_z = []
+                # Add the orbit circumference points
+                for i in range(0, 360, 5):
+                    x = star.x + offset * np.cos(np.radians(i))
+                    y = star.y + offset * np.sin(np.radians(i))
+                    z = star.z
+                    temp_orbit_x.append(x)
+                    temp_orbit_y.append(y)
+                    temp_orbit_z.append(z)
+                # Add the first point again to close the orbit
+                temp_orbit_x.append(temp_orbit_x[0])
+                temp_orbit_y.append(temp_orbit_y[0])
+                temp_orbit_z.append(temp_orbit_z[0])
+                # Append the orbit points to the main lists
+                orbit_x.extend(temp_orbit_x + [None])  # Add None to break the line
+                orbit_y.extend(temp_orbit_y + [None])
+                orbit_z.extend(temp_orbit_z + [None])
+
+        # Create trace for the orbit circumferences with closed loops
+        trace_planets_orbits = go.Scatter3d(
+            x=orbit_x,
+            y=orbit_y,
+            z=orbit_z,
+            mode="lines",
+            line=dict(color="black", width=1),
+            opacity=0.2,
+            name="trace_planets_orbits",
+            hoverinfo="none",
+        )
+        return trace_planets_orbits
+
     def trace_planets(self):
         """
         Creates a trace for the planets in the starmap.
 
         This method iterates over each star in the starmap, and for each star, it iterates over its planets.
-        For each planet, it calculates its position in the 3D space, its mass, and its color based on its habitability.
+        For each planet, it calculates its position in the 3D space based on the planet's orbit attribute, its mass, and its color based on its habitability.
         It then creates a Scatter3d trace with this information.
 
         Returns:
@@ -284,21 +359,28 @@ class Starmap:
         planet_mass = []
         planet_colors = []
         planet_names = []
-        # Offset for placing planetary dots to the right of the star
-        base_offset = 1.5
-        offset_increment = 1
+
+        # Get all orbits and normalize them
+        all_orbits = [planet.orbit for star in self.stars for planet in star.planetary_system.celestial_bodies]
+        normalized_orbits = scale_values_to_range(all_orbits, 3, 17)
+
+        orbit_index = 0
         for star in self.stars:
-            offset = base_offset
             for planet in star.planetary_system.celestial_bodies:
+                # Use the normalized orbit as the offset
+                offset = normalized_orbits[orbit_index]
+                orbit_index += 1
+
                 # Assume each star's planetary system has a method or attribute to check habitability
                 is_habitable = (
-                    hasattr(planet, "habitable") and planet.habitable
+                        hasattr(planet, "habitable") and planet.habitable
                 )  # Placeholder condition
                 planet_color = "green" if is_habitable else "black"
 
                 # Add the planet dot position and color
-                planet_x.append(star.x + offset)
-                planet_y.append(star.y)
+                angle = np.random.uniform(0, 2 * np.pi)  # Random angle for the position on the orbit
+                planet_x.append(star.x + offset * np.cos(angle))
+                planet_y.append(star.y + offset * np.sin(angle))
                 planet_z.append(star.z)
 
                 if planet.body_type == "Planet":
@@ -309,8 +391,7 @@ class Starmap:
                 planet_colors.append(planet_color)
 
                 planet_names.append(planet.name)
-                # Increment the offset for the next planet
-                offset += offset_increment
+
         # Create trace for the planetary dots
         trace_planets = go.Scatter3d(
             x=planet_x,
@@ -318,7 +399,7 @@ class Starmap:
             z=planet_z,
             mode="markers",
             marker=dict(
-                size=scale_values_to_range(planet_mass, 5, 10),  # Adjust size as needed
+                size=scale_values_to_range(planet_mass, 7, 12),  # Adjust size as needed
                 color=planet_colors,  # Color based on habitability
             ),
             text=planet_names,
@@ -375,6 +456,13 @@ class Starmap:
         return trace_stars
 
     def __str__(self):
+        """
+        Returns a string representation of the Starmap object.
+
+        This method counts the number of stars of each spectral class in the starmap and prints the count.
+        It also retrieves the masses and luminosities of the stars, and prints the highest and lowest values of each.
+        It ends by printing a line of dashes to separate the starmap information from other output.
+        """
         # Count spectral classes
         spectral_classes_count = {}
         for star in self.stars:
@@ -396,8 +484,8 @@ class Starmap:
         print("Lowest luminosity:", luminosities.min())
         print("Highest mass:", masses.max())
         print("Lowest mass:", masses.min())
-        return "-----"
-
+        print("-----")
+        return ""
 
 name_set = [
     "Haven",
@@ -425,7 +513,7 @@ expansion_rate_set = [0.7, 0.8, 1, 1, 0.9]
 np.random.seed(50)
 
 actual_map = Starmap()
-actual_map.generate_stars(number_of_stars=500)
+actual_map.generate_stars(number_of_stars=50)
 actual_map.generate_nations(
     name_set=name_set,
     nation_colour_set=colour_set,
