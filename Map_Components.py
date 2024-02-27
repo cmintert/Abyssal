@@ -50,12 +50,36 @@ class Nation:
 
 
 class SmallBody:
+    """
+    A class used to represent a SmallBody in a star system.
+
+    Attributes
+    ----------
+    name : str
+        the name of the small body
+    body_type : str
+        the type of the small body (e.g., "Planet", "Moon", "Asteroid", etc.)
+    orbit : float
+        the distance of the small body from the star in AU (astronomical units)
+    additional_info : str
+        additional information about the small body
+    star : Star
+        the star that the small body orbits
+
+    Methods
+    -------
+    __str__():
+        Returns a string representation of the small body.
+    return_orbit_number():
+        Returns the orbit number of the small body, starting with 1 for the closest orbit in the system.
+    """
     def __init__(self, name, star, body_type=None, orbit=None, additional_info=None):
         self.name = name
         self.body_type = body_type  # Planet, Moon, Asteroid, etc.
         self.orbit = orbit  # Distance from the star in AU
         self.additional_info = additional_info
         self.star = star
+        self.hill_sphere_radius = 0
 
     def __str__(self):
         info = f", {self.additional_info}" if self.additional_info else ""
@@ -65,7 +89,7 @@ class SmallBody:
         # Return the orbit number of the body start with 1 for the closest orbit in the system
         # Access the star object and get the planetary system object to get the orbit list
         # Then return the index of the orbit of the body + 1
-        orbit_number = self.star.planetary_system.orbits.index(self.orbit) + 1
+        orbit_number = self.star.planetary_system.orbits.index(self.orbit)
         return orbit_number
 
 
@@ -223,7 +247,8 @@ class Planet(SmallBody):
         star,
         name=None,
         mass=None,
-        planet_composition=None,
+        composition=None,
+        density=None,
         orbital_time=None,
         rotation_period=None,
         tilt=None,
@@ -240,7 +265,9 @@ class Planet(SmallBody):
 
         self.star = star
         self.mass = mass
-        self.planet_composition = planet_composition
+        self.density = density
+        self.radius = radius
+        self.composition = composition
         self.orbital_time = orbital_time
         self.rotation_period = rotation_period
         self.tilt = tilt
@@ -253,7 +280,7 @@ class Planet(SmallBody):
         self.habitable = habitable
 
     def __str__(self):
-        return f"Planet: {self.name}, Star: {self.star.name}, Mass: {self.mass}, Orbital Distance: {self.orbit}, Planet Composition: {self.planet_composition}, Orbital Time: {self.orbital_time}, Rotation Period: {self.rotation_period}, Tilt: {self.tilt}, Moons: {self.moons}, Atmosphere: {self.atmosphere}, Surface Temperature: {self.surface_temperature}, Presence of Water: {self.presence_of_water}, Radius: {self.radius}, Albedo: {self.albedo}"
+        return f"{self.name}: {self.composition} planet at {self.orbit:.2f} AU, Mass: {self.mass:.2f} Earth masses, Radius: {self.radius:.2f} km, Density: {self.density:.2f} g/cm^3, Surface Temperature: {self.surface_temperature:.2f}°C, Presence of Water: {self.presence_of_water}, Atmosphere: {self.atmosphere}, Axial Tilt: {self.tilt}°, Rotation Period: {self.rotation_period} hours, Habitable: {self.habitable}"
 
     def generate_planet(self, orbit, star, habitable=False):
         """
@@ -280,16 +307,27 @@ class Planet(SmallBody):
             self.mass = np.random.uniform(0.5, 2)
         else:
             self.mass = self.generate_planet_mass(
-                star.mass, self.orbit, star.goldilocks_zone()
+                self.orbit, star.goldilocks_zone()
             )
 
         # Calculate the planet's composition
         if habitable:
             self.composition = "Rocky"
         else:
-            self.composition = self.generate_planet_composition(
+            self.composition = self.generate_composition(
                 self.mass, self.orbit, star.luminosity
             )
+
+        # Calculate the planet's density
+
+        if habitable:
+            self.density = np.random.uniform(3, 6)
+        else:
+            self.density = self.generate_density(self.composition)
+
+        # Calculate the planet's radius
+
+        self.radius = self.generate_radius(self.mass, self.density)
 
         # Calculate the planet's atmosphere
         if habitable:
@@ -339,15 +377,19 @@ class Planet(SmallBody):
         else:
             self.has_magnetic_field = self.generate_magnetic_field(self)
 
+
+        print(self)
+
         return self
 
+
+
     @staticmethod
-    def generate_planet_mass(star_mass, orbit_distance, goldilocks_zone):
+    def generate_planet_mass(orbit_distance, goldilocks_zone):
         """
         Generate a planet's mass based on the star's mass and its orbit.
 
         Parameters:
-        - star_mass: Mass of the star in solar masses.
         - orbit_distance: Distance of the planet's orbit from the star in AU (astronomical units).
         - goldilocks_zone: Tuple of (inner edge, outer edge) of the star's habitable zone in AU.
 
@@ -383,7 +425,7 @@ class Planet(SmallBody):
         return mass
 
     @staticmethod
-    def generate_planet_composition(mass, orbit_distance, star_luminosity):
+    def generate_composition(mass, orbit_distance, star_luminosity):
         """
         Determines the composition of a planet based on its mass, orbit distance,
         and the characteristics of its star (mass and luminosity).
@@ -413,6 +455,38 @@ class Planet(SmallBody):
             composition = "Gas Giant"
 
         return composition
+
+    def generate_density(self, composition):
+        """
+        Generate the density of the planet based on its composition and mass.
+        """
+        # Define density ranges based on composition
+        if composition == "Rocky":
+            density = np.random.uniform(3, 6)  # g/cm^3
+        elif composition == "Ice":
+            density = np.random.uniform(1, 3)
+        elif composition == "Ice Giant":
+            density = np.random.uniform(1, 2)
+        elif composition == "Gas Giant":
+            density = np.random.uniform(0.5, 1.5)
+        else:
+            density = np.random.uniform(0.5, 5)
+
+        return density
+
+    def generate_radius(self, mass, density):
+        """
+        Generate the radius of the planet based on its mass and density. Mass is given in Earth masses. Density is given in g/cm^3.
+        """
+        # Calculate the radius based on mass and density
+        # Using the formula: volume = mass / density
+        # Then calculate the radius from the volume of a sphere
+        EARTH_MASS = 5.972 * (10 ** 24) #kg
+        volume = mass * EARTH_MASS / (density * 1000)  # In mass is provided in Earth masses, density in g/cm^3
+        radius = (3 * volume / (4 * math.pi)) ** (1 / 3) / 1000  # Convert to km
+        return radius
+
+
 
     @staticmethod
     def generate_atmosphere(mass, orbit_distance, star_luminosity, composition):
@@ -546,11 +620,11 @@ class Planet(SmallBody):
         This method simplifies the diversity of factors that influence rotation periods in reality.
         """
         # Base ranges on composition, assuming terrestrial planets rotate faster due to historical collisions and gas giants rotate slower due to their size
-        if self.planet_composition == "Gas Giant":
+        if self.composition == "Gas Giant":
             rotation_period = np.random.uniform(
                 10, 24
             )  # Hours, gas giants tend to have faster rotation periods
-        elif self.planet_composition == "Ice Giant":
+        elif self.composition == "Ice Giant":
             rotation_period = np.random.uniform(
                 16, 22
             )  # Hours, similar to Uranus and Neptune
@@ -589,6 +663,10 @@ class Planet(SmallBody):
 
         return has_magnetic_field
 
+    def adjust_orbit(self, orbit_adjustment):
+        """Adjust the orbit of the planet"""
+        new_orbit = self.orbit + orbit_adjustment
+        return new_orbit
 
 class Planetary_System:
     def __init__(self, star, orbits=[], celestial_bodies=None):
@@ -607,7 +685,6 @@ class Planetary_System:
         """
         # Define initial orbit parameters based on protoplanetary disk properties
         initial_orbit = 0.1  # Starting close to the star, in AU
-
         self.orbits = []  # Ensure the orbits list is empty before starting
 
         # Calculate the habitable zone if needed
@@ -640,6 +717,8 @@ class Planetary_System:
         self.orbits.sort()  # Sort orbits for easier readability/processing
         print(f"Generated orbits: {self.orbits}")
 
+
+
     def generate_planets_and_asteroid_belts(self):
         self.celestial_bodies = []
         goldilocks_zone = self.star.goldilocks_zone()
@@ -659,18 +738,13 @@ class Planetary_System:
                     orbit=orbit,
                     additional_info="Varied density",
                 )
-                print("Generated asteroid belt")
+
             else:
                 body = Planet(star=self.star)
                 if is_in_goldilocks_zone:
                     body = body.generate_planet(orbit, self.star, habitable=True)
-                    print("Generated habitable planet")
+
                 else:
                     body = body.generate_planet(orbit, self.star, habitable=False)
-                    print("Generated non-habitable planet")
 
             self.celestial_bodies.append(body)
-
-    def __str__(self):
-        bodies_str = ", ".join([str(body) for body in self.celestial_bodies])
-        return f"Star: {self.star.name}, Celestial Bodies: {bodies_str}"

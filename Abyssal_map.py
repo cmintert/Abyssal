@@ -299,7 +299,9 @@ class Starmap:
 
         # Get all orbits and normalize them
         all_orbits = [planet.orbit for star in self.stars for planet in star.planetary_system.celestial_bodies]
-        normalized_orbits = scale_values_to_range(all_orbits, 3, 17)
+        normalized_orbits = scale_values_to_range(all_orbits, 1, 17)
+
+
 
         orbit_index = 0
         for star in self.stars:
@@ -362,7 +364,7 @@ class Starmap:
 
         # Get all orbits and normalize them
         all_orbits = [planet.orbit for star in self.stars for planet in star.planetary_system.celestial_bodies]
-        normalized_orbits = scale_values_to_range(all_orbits, 3, 17)
+        normalized_orbits = scale_values_to_range(all_orbits, 1, 17)
 
         orbit_index = 0
         for star in self.stars:
@@ -524,10 +526,3 @@ actual_map.assign_stars_to_nations()
 print(actual_map)
 actual_map.plot()
 
-# Print stars and planetary system names
-for star in actual_map.stars:
-    print(star.name[0])
-    print("-----")
-
-    for planet in star.planetary_system.celestial_bodies:
-        print(planet.name)

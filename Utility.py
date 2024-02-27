@@ -164,9 +164,6 @@ class PlanetNames:
         star_name = self.star.name
         orbit_number = self.orbit_number
 
-        # transform orbit number to designation
-        designation = self.designations[orbit_number]
-
         # transform orbit_number to roman numeral
         roman_numerals = [
             "I",
