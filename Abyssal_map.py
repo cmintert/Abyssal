@@ -241,7 +241,7 @@ class Starmap:
         layout = self.define_layout()
 
         self.create_figure(
-            layout, trace_nations, trace_planets, trace_stars, trace_planets_orbits,html=False
+            layout, trace_nations, trace_planets, trace_stars, trace_planets_orbits,html=True
         )
 
     def create_figure(

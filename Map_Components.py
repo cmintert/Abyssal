@@ -482,7 +482,7 @@ class Planet(SmallBody):
         # Using the formula: volume = mass / density
         # Then calculate the radius from the volume of a sphere
         EARTH_MASS = 5.972 * (10 ** 24) #kg
-        volume = mass * EARTH_MASS / (density * 1000)  # In mass is provided in Earth masses, density in g/cm^3
+        volume = mass * EARTH_MASS / (density * 1000)  # Mass is provided in Earth masses, density in g/cm^3
         radius = (3 * volume / (4 * math.pi)) ** (1 / 3) / 1000  # Convert to km
         return radius
 
@@ -668,6 +668,45 @@ class Planet(SmallBody):
         new_orbit = self.orbit + orbit_adjustment
         return new_orbit
 
+class AsteroidBelt(SmallBody):
+    def __init__(self, name, star, **kwargs):
+        super().__init__(name, star, **kwargs)
+        self.density = self.generate_density()
+
+    def __str__(self):
+        return f"{self.name}: {self.body_type} at {self.orbit:.2f} AU, Density: {self.density}"
+
+    def generate_asteroid_belt(self, orbit, star):
+        """
+        Generate an asteroid belt based on its orbit and the properties of its star.
+        - orbit: The semi-major axis of the asteroid belt's orbit, in AU.
+        - star: The star around which the asteroid belt orbits.
+        """
+        self.orbit = orbit
+        self.name = f"Asteroid Belt {self.return_orbit_number()}"
+
+        # Calculate the density of the asteroid belt
+        self.additional_info = self.generate_density()
+
+        print(self)
+
+        return self
+
+    def generate_density(self):
+        """
+        Generate the density of the asteroid belt based on its orbit.
+        """
+        # Define density ranges based on orbit distance
+        if self.orbit < 2:
+            density = "Sparse"
+        elif self.orbit < 3:
+            density = "Moderate"
+        else:
+            density = "Dense"
+
+        return density
+
+
 class Planetary_System:
     def __init__(self, star, orbits=[], celestial_bodies=None):
         self.star = star
@@ -731,13 +770,7 @@ class Planetary_System:
             if (
                 np.random.rand() > 0.75 and not is_in_goldilocks_zone
             ):  # 25% chance to generate an asteroid belt outside Goldilocks zone
-                body = SmallBody(
-                    name=f"Asteroid Belt {len(self.celestial_bodies) + 1}",
-                    star=self.star,
-                    body_type="Asteroid Belt",
-                    orbit=orbit,
-                    additional_info="Varied density",
-                )
+                body = AsteroidBelt(name="Asteroid Belt", star=self.star, orbit=orbit)
 
             else:
                 body = Planet(star=self.star)
