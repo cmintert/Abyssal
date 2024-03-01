@@ -237,17 +237,20 @@ class Starmap:
         # Create trace for the planetary orbits
         trace_planets_orbits = self.trace_planets_orbits()
 
+        # Create trace for the asteroid belts
+        trace_asteroid_belts = self.trace_asteroid_belts()
+
         # Create layout for the plot
         layout = self.define_layout()
 
         self.create_figure(
-            layout, trace_nations, trace_planets, trace_stars, trace_planets_orbits,html=False
+            layout, trace_nations, trace_planets, trace_stars, trace_planets_orbits, trace_asteroid_belts, html=False
         )
 
     def create_figure(
-        self, layout, trace_nations, trace_planets, trace_stars, trace_planets_orbits, html=True
+        self, layout, trace_nations, trace_planets, trace_stars, trace_planets_orbits,trace_asteroid_belts, html=True
     ):
-        data = [trace_stars, trace_nations, trace_planets,trace_planets_orbits]
+        data = [trace_stars, trace_nations, trace_planets,trace_planets_orbits,trace_asteroid_belts]
         fig = go.Figure(data=data, layout=layout)
         if html:
             plot(fig, filename="Abyssal_showcase.html", output_type="file")
@@ -373,26 +376,27 @@ class Starmap:
                 offset = normalized_orbits[orbit_index]
                 orbit_index += 1
 
-                # Assume each star's planetary system has a method or attribute to check habitability
-                is_habitable = (
-                        hasattr(planet, "habitable") and planet.habitable
-                )  # Placeholder condition
-                planet_color = "green" if is_habitable else "black"
-
-                # Add the planet dot position and color
-                angle = np.random.uniform(0, 2 * np.pi)  # Random angle for the position on the orbit
-                planet_x.append(star.x + offset * np.cos(angle))
-                planet_y.append(star.y + offset * np.sin(angle))
-                planet_z.append(star.z)
-
                 if planet.body_type == "Planet":
-                    planet_mass.append(planet.mass)
-                else:
-                    planet_mass.append(1)
+                    # Assume each star's planetary system has a method or attribute to check habitability
+                    is_habitable = (
+                            hasattr(planet, "habitable") and planet.habitable
+                    )  # Placeholder condition
+                    planet_color = "green" if is_habitable else "black"
 
-                planet_colors.append(planet_color)
+                    # Add the planet dot position and color
+                    angle = np.random.uniform(0, 2 * np.pi)  # Random angle for the position on the orbit
+                    planet_x.append(star.x + offset * np.cos(angle))
+                    planet_y.append(star.y + offset * np.sin(angle))
+                    planet_z.append(star.z)
 
-                planet_names.append(planet.name)
+                    if planet.body_type == "Planet":
+                        planet_mass.append(planet.mass)
+                    else:
+                        planet_mass.append(1)
+
+                    planet_colors.append(planet_color)
+
+                    planet_names.append(planet.name)
 
         # Create trace for the planetary dots
         trace_planets = go.Scatter3d(
@@ -409,6 +413,50 @@ class Starmap:
             hoverinfo="text",
         )
         return trace_planets
+
+    def trace_asteroid_belts(self):
+
+        asteroid_belt_x = []
+        asteroid_belt_y = []
+        asteroid_belt_z = []
+        asteroid_belt_names = []
+
+        # Get all orbits and normalize them
+        all_orbits = [planet.orbit for star in self.stars for planet in star.planetary_system.celestial_bodies]
+        normalized_orbits = scale_values_to_range(all_orbits, 1, 17)
+
+        orbit_index = 0
+        for star in self.stars:
+            for belt in star.planetary_system.celestial_bodies:
+                # Use the normalized orbit as the offset
+                offset = normalized_orbits[orbit_index]
+                orbit_index += 1
+                print("Increased orbit index by +1, Orbit index is now: ", orbit_index)
+                print("Belt body type is: ", belt.body_type)
+                if belt.body_type == "Asteroid Belt":
+                    # Add the planet dot position and color
+                    angle = np.random.uniform(0, 2 * np.pi)  # Random angle for the position on the orbit
+                    asteroid_belt_x.append(star.x + offset * np.cos(angle))
+                    asteroid_belt_y.append(star.y + offset * np.sin(angle))
+                    asteroid_belt_z.append(star.z)
+
+                    asteroid_belt_names.append(belt.name)
+
+        # Create trace for the planetary dots
+        trace_asteroid_belts = go.Scatter3d(
+            x=asteroid_belt_x,
+            y=asteroid_belt_y,
+            z=asteroid_belt_z,
+            mode="markers",
+            marker=dict(
+                size= 2,  # Adjust size as needed
+                color="blue"
+            ),
+            text=asteroid_belt_names,
+            name="trace_asteroid_belts",
+            hoverinfo="text",
+        )
+        return trace_asteroid_belts
 
     def trace_nations(self):
         trace_nations = go.Scatter3d(
@@ -515,7 +563,7 @@ expansion_rate_set = [0.7, 0.8, 1, 1, 0.9]
 np.random.seed(50)
 
 actual_map = Starmap()
-actual_map.generate_stars(number_of_stars=50)
+actual_map.generate_stars(number_of_stars=10)
 actual_map.generate_nations(
     name_set=name_set,
     nation_colour_set=colour_set,

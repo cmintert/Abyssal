@@ -73,6 +73,7 @@ class SmallBody:
     return_orbit_number():
         Returns the orbit number of the small body, starting with 1 for the closest orbit in the system.
     """
+
     def __init__(self, name, star, body_type=None, orbit=None, additional_info=None):
         self.name = name
         self.body_type = body_type  # Planet, Moon, Asteroid, etc.
@@ -306,9 +307,7 @@ class Planet(SmallBody):
         if habitable:
             self.mass = np.random.uniform(0.5, 2)
         else:
-            self.mass = self.generate_planet_mass(
-                self.orbit, star.goldilocks_zone()
-            )
+            self.mass = self.generate_planet_mass(self.orbit, star.goldilocks_zone())
 
         # Calculate the planet's composition
         if habitable:
@@ -377,12 +376,9 @@ class Planet(SmallBody):
         else:
             self.has_magnetic_field = self.generate_magnetic_field(self)
 
-
         print(self)
 
         return self
-
-
 
     @staticmethod
     def generate_planet_mass(orbit_distance, goldilocks_zone):
@@ -481,12 +477,12 @@ class Planet(SmallBody):
         # Calculate the radius based on mass and density
         # Using the formula: volume = mass / density
         # Then calculate the radius from the volume of a sphere
-        EARTH_MASS = 5.972 * (10 ** 24) #kg
-        volume = mass * EARTH_MASS / (density * 1000)  # Mass is provided in Earth masses, density in g/cm^3
+        EARTH_MASS = 5.972 * (10**24)  # kg
+        volume = (
+            mass * EARTH_MASS / (density * 1000)
+        )  # Mass is provided in Earth masses, density in g/cm^3
         radius = (3 * volume / (4 * math.pi)) ** (1 / 3) / 1000  # Convert to km
         return radius
-
-
 
     @staticmethod
     def generate_atmosphere(mass, orbit_distance, star_luminosity, composition):
@@ -668,13 +664,14 @@ class Planet(SmallBody):
         new_orbit = self.orbit + orbit_adjustment
         return new_orbit
 
+
 class AsteroidBelt(SmallBody):
-    def __init__(self, name, star, **kwargs):
+    def __init__(self, star, name=None, **kwargs):
         super().__init__(name, star, **kwargs)
-        self.density = self.generate_density()
+        self.density = None
 
     def __str__(self):
-        return f"{self.name}: {self.body_type} at {self.orbit:.2f} AU, Density: {self.density}"
+        return f"{self.star.name}!!!:  {self.name}: {self.body_type} at {self.orbit:.2f} AU, Density: {self.density}"
 
     def generate_asteroid_belt(self, orbit, star):
         """
@@ -682,11 +679,14 @@ class AsteroidBelt(SmallBody):
         - orbit: The semi-major axis of the asteroid belt's orbit, in AU.
         - star: The star around which the asteroid belt orbits.
         """
+        self.star = star
         self.orbit = orbit
         self.name = f"Asteroid Belt {self.return_orbit_number()}"
+        self.body_type = "Asteroid Belt"
+        self.generate_density()
 
         # Calculate the density of the asteroid belt
-        self.additional_info = self.generate_density()
+        #self.additional_info = self.generate_density()
 
         print(self)
 
@@ -756,8 +756,6 @@ class Planetary_System:
         self.orbits.sort()  # Sort orbits for easier readability/processing
         print(f"Generated orbits: {self.orbits}")
 
-
-
     def generate_planets_and_asteroid_belts(self):
         self.celestial_bodies = []
         goldilocks_zone = self.star.goldilocks_zone()
@@ -770,7 +768,9 @@ class Planetary_System:
             if (
                 np.random.rand() > 0.75 and not is_in_goldilocks_zone
             ):  # 25% chance to generate an asteroid belt outside Goldilocks zone
-                body = AsteroidBelt(name="Asteroid Belt", star=self.star, orbit=orbit)
+                print(f"Generating asteroid belt at {orbit} AU")
+                body = AsteroidBelt(star=self.star)
+                body = body.generate_asteroid_belt(orbit, self.star)
 
             else:
                 body = Planet(star=self.star)
