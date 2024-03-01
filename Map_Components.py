@@ -90,7 +90,7 @@ class SmallBody:
         # Return the orbit number of the body start with 1 for the closest orbit in the system
         # Access the star object and get the planetary system object to get the orbit list
         # Then return the index of the orbit of the body + 1
-        orbit_number = self.star.planetary_system.orbits.index(self.orbit)
+        orbit_number = self.star.planetary_system.orbits.index(self.orbit) + 1
         return orbit_number
 
 
@@ -683,10 +683,10 @@ class AsteroidBelt(SmallBody):
         self.orbit = orbit
         self.name = f"Asteroid Belt {self.return_orbit_number()}"
         self.body_type = "Asteroid Belt"
-        self.generate_density()
+        self.density = self.generate_density()
 
         # Calculate the density of the asteroid belt
-        #self.additional_info = self.generate_density()
+        # self.additional_info = self.generate_density()
 
         print(self)
 
@@ -697,9 +697,10 @@ class AsteroidBelt(SmallBody):
         Generate the density of the asteroid belt based on its orbit.
         """
         # Define density ranges based on orbit distance
-        if self.orbit < 2:
+
+        if self.orbit < 0.8:
             density = "Sparse"
-        elif self.orbit < 3:
+        elif self.orbit < 2:
             density = "Moderate"
         else:
             density = "Dense"

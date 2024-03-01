@@ -4,6 +4,7 @@ from plotly.offline import plot
 from Map_Components import Nation, Star, Planetary_System
 from Utility import scale_values_to_range
 
+
 # Generate stars
 class Starmap:
     def __init__(self):
@@ -27,13 +28,17 @@ class Starmap:
             spectral_class = self.random_spectral_class()
             luminosity = self.random_luminosity(spectral_class)
 
-            current_star = self.instance_star(id, luminosity, phi, r, spectral_class, theta)
+            current_star = self.instance_star(
+                id, luminosity, phi, r, spectral_class, theta
+            )
 
             # Instance the planetary system
             current_star.planetary_system = Planetary_System(current_star)
 
             # Generate orbits for the star
-            self.generate_orbits_for_star(current_star, number_of_orbits=10, include_habitable_zone=True)
+            self.generate_orbits_for_star(
+                current_star, number_of_orbits=10, include_habitable_zone=True
+            )
 
             # generate planets for each orbit
             current_star.planetary_system.generate_planets_and_asteroid_belts()
@@ -44,7 +49,9 @@ class Starmap:
         self.star_location_noise()
         self.star_location_stretch()
 
-    def generate_orbits_for_star(self, current_star, number_of_orbits=3, include_habitable_zone = True):
+    def generate_orbits_for_star(
+        self, current_star, number_of_orbits=3, include_habitable_zone=True
+    ):
         """
         Generates orbits for a given star in the starmap.
 
@@ -53,7 +60,7 @@ class Starmap:
                 number_of_orbits (int, optional): The maximum number of orbits to generate. Defaults to 3.
                 include_habitable_zone (bool, optional): Whether to include a habitable zone in the generated orbits. Defaults to True.
         """
-        orbits_count = np.random.randint(1, number_of_orbits+1)
+        orbits_count = np.random.randint(1, number_of_orbits + 1)
         current_star.planetary_system.generate_orbits(
             include_habitable_zone, num_orbits=orbits_count
         )
@@ -76,17 +83,23 @@ class Starmap:
         luminosity = np.random.uniform(*self.spectral_classes[spectral_class])
         return luminosity
 
-    def random_spectral_class(self, include_habitable_zone = True):
+    def random_spectral_class(self, include_habitable_zone=True):
         # Create random spectral class
         if include_habitable_zone:
             # choose only G K or M Type stars
             useable_spectral_classes = ["G-Type", "K-Type", "M-Type"]
             spectral_class = np.random.choice(
-                useable_spectral_classes, p=[0.3, 0.3, 0.4] # shifting distribution to G and K type stars, more like SOL
+                useable_spectral_classes,
+                p=[
+                    0.3,
+                    0.3,
+                    0.4,
+                ],  # shifting distribution to G and K type stars, more like SOL
             )
         else:
             spectral_class = np.random.choice(
-                list(self.spectral_classes.keys()), p = [0.00003,0.13,0.6,3,7.6,12.1,76.5]
+                list(self.spectral_classes.keys()),
+                p=[0.00003, 0.13, 0.6, 3, 7.6, 12.1, 76.5],
             )
         return spectral_class
 
@@ -244,13 +257,32 @@ class Starmap:
         layout = self.define_layout()
 
         self.create_figure(
-            layout, trace_nations, trace_planets, trace_stars, trace_planets_orbits, trace_asteroid_belts, html=False
+            layout,
+            trace_nations,
+            trace_planets,
+            trace_stars,
+            trace_planets_orbits,
+            trace_asteroid_belts,
+            html=True,
         )
 
     def create_figure(
-        self, layout, trace_nations, trace_planets, trace_stars, trace_planets_orbits,trace_asteroid_belts, html=True
+        self,
+        layout,
+        trace_nations,
+        trace_planets,
+        trace_stars,
+        trace_planets_orbits,
+        trace_asteroid_belts,
+        html=True,
     ):
-        data = [trace_stars, trace_nations, trace_planets,trace_planets_orbits,trace_asteroid_belts]
+        data = [
+            trace_stars,
+            trace_nations,
+            trace_planets,
+            trace_planets_orbits,
+            trace_asteroid_belts,
+        ]
         fig = go.Figure(data=data, layout=layout)
         if html:
             plot(fig, filename="Abyssal_showcase.html", output_type="file")
@@ -269,19 +301,49 @@ class Starmap:
         Returns:
             layout (plotly.graph_objs.Layout): A Layout object representing the layout of the 3D plot.
         """
+        grid_color = "rgba(20, 89, 104, 0.2)"
+
         layout = go.Layout(
             margin=dict(l=0, r=0, b=0, t=0),
+            paper_bgcolor="black",
             scene=dict(
-                xaxis=dict(title="X"),
-                yaxis=dict(title="Y"),
-                zaxis=dict(title="Z"),
                 camera=dict(
                     up=dict(x=0, y=0, z=1),
                     center=dict(x=0, y=0, z=0),
-                    eye=dict(x=1.5, y=1.5, z=1.5),
+                    eye=dict(x=0.6, y=0.6, z=1),
+                ),
+                xaxis=dict(
+                    backgroundcolor="rgba(0, 0, 0,0)",
+                    gridcolor=grid_color,
+                    showbackground=True,
+                    zerolinecolor="white",
+                ),
+                yaxis=dict(
+                    backgroundcolor="rgba(0, 0, 0,0)",
+                    gridcolor=grid_color,
+                    showbackground=True,
+                    zerolinecolor="white",
+                ),
+                zaxis=dict(
+                    backgroundcolor="rgba(0, 0, 0,0)",
+                    gridcolor=grid_color,
+                    showbackground=True,
+                    zerolinecolor="white",
                 ),
             ),
             legend=dict(x=0, y=1),
+            title=dict(
+                text="ABYSSAL 2675 AD",  # Set your plot title here
+                x=0.5,  # Centers the title
+                y=0.95,  # Position the title at the top of the plot
+                xanchor="center",
+                yanchor="top",
+                font=dict(  # Customize the global font of the plot
+                    family="OCR A, sans-serif",  # Specify the font family here
+                    size=50,  # Specify the font size here
+                    color="white",  # Specify the font color here
+                ),
+            ),
         )
         return layout
 
@@ -299,16 +361,18 @@ class Starmap:
         orbit_x = []
         orbit_y = []
         orbit_z = []
-
+        orbit_body_names = []
         # Get all orbits and normalize them
-        all_orbits = [planet.orbit for star in self.stars for planet in star.planetary_system.celestial_bodies]
+        all_orbits = [
+            planet.orbit
+            for star in self.stars
+            for planet in star.planetary_system.celestial_bodies
+        ]
         normalized_orbits = scale_values_to_range(all_orbits, 1, 17)
-
-
 
         orbit_index = 0
         for star in self.stars:
-            for planet in star.planetary_system.celestial_bodies:
+            for body in star.planetary_system.celestial_bodies:
                 # Use the normalized orbit as the offset
                 offset = normalized_orbits[orbit_index]
                 orbit_index += 1
@@ -339,11 +403,11 @@ class Starmap:
             x=orbit_x,
             y=orbit_y,
             z=orbit_z,
-            mode="lines",
-            line=dict(color="black", width=1),
-            opacity=0.2,
+            mode="lines, text",
+            line=dict(color="grey", width=1),
+            opacity=0.7,
             name="trace_planets_orbits",
-            hoverinfo="none",
+            hoverinfo="text",
         )
         return trace_planets_orbits
 
@@ -366,7 +430,11 @@ class Starmap:
         planet_names = []
 
         # Get all orbits and normalize them
-        all_orbits = [planet.orbit for star in self.stars for planet in star.planetary_system.celestial_bodies]
+        all_orbits = [
+            planet.orbit
+            for star in self.stars
+            for planet in star.planetary_system.celestial_bodies
+        ]
         normalized_orbits = scale_values_to_range(all_orbits, 1, 17)
 
         orbit_index = 0
@@ -379,12 +447,14 @@ class Starmap:
                 if planet.body_type == "Planet":
                     # Assume each star's planetary system has a method or attribute to check habitability
                     is_habitable = (
-                            hasattr(planet, "habitable") and planet.habitable
+                        hasattr(planet, "habitable") and planet.habitable
                     )  # Placeholder condition
-                    planet_color = "green" if is_habitable else "black"
+                    planet_color = "green" if is_habitable else "lightgrey"
 
                     # Add the planet dot position and color
-                    angle = np.random.uniform(0, 2 * np.pi)  # Random angle for the position on the orbit
+                    angle = np.random.uniform(
+                        0, 2 * np.pi
+                    )  # Random angle for the position on the orbit
                     planet_x.append(star.x + offset * np.cos(angle))
                     planet_y.append(star.y + offset * np.sin(angle))
                     planet_z.append(star.z)
@@ -419,28 +489,44 @@ class Starmap:
         asteroid_belt_x = []
         asteroid_belt_y = []
         asteroid_belt_z = []
-        asteroid_belt_names = []
+        hover_texts = []
 
         # Get all orbits and normalize them
-        all_orbits = [planet.orbit for star in self.stars for planet in star.planetary_system.celestial_bodies]
+        all_orbits = [
+            planet.orbit
+            for star in self.stars
+            for planet in star.planetary_system.celestial_bodies
+        ]
         normalized_orbits = scale_values_to_range(all_orbits, 1, 17)
 
         orbit_index = 0
         for star in self.stars:
             for belt in star.planetary_system.celestial_bodies:
                 # Use the normalized orbit as the offset
+                scatter_number = 0
                 offset = normalized_orbits[orbit_index]
                 orbit_index += 1
-                print("Increased orbit index by +1, Orbit index is now: ", orbit_index)
-                print("Belt body type is: ", belt.body_type)
-                if belt.body_type == "Asteroid Belt":
-                    # Add the planet dot position and color
-                    angle = np.random.uniform(0, 2 * np.pi)  # Random angle for the position on the orbit
-                    asteroid_belt_x.append(star.x + offset * np.cos(angle))
-                    asteroid_belt_y.append(star.y + offset * np.sin(angle))
-                    asteroid_belt_z.append(star.z)
 
-                    asteroid_belt_names.append(belt.name)
+                if belt.body_type == "Asteroid Belt":
+
+                    # Create a number of points to scatter along the orbit
+                    if belt.density == "Sparse":
+                        scatter_number = 10
+                    elif belt.density == "Moderate":
+                        scatter_number = 40
+                    elif belt.density == "Dense":
+                        scatter_number = 80
+
+                    for _ in range(scatter_number + 1):
+
+                        angle = np.random.uniform(
+                            0, 2 * np.pi
+                        )  # Random angle for the position on the orbit
+
+                        asteroid_belt_x.append(star.x + offset * np.cos(angle))
+                        asteroid_belt_y.append(star.y + offset * np.sin(angle))
+                        asteroid_belt_z.append(star.z)
+                        hover_texts.append(belt.name)  # Placeholder text
 
         # Create trace for the planetary dots
         trace_asteroid_belts = go.Scatter3d(
@@ -448,11 +534,8 @@ class Starmap:
             y=asteroid_belt_y,
             z=asteroid_belt_z,
             mode="markers",
-            marker=dict(
-                size= 2,  # Adjust size as needed
-                color="blue"
-            ),
-            text=asteroid_belt_names,
+            marker=dict(size=1, color="white"),  # Adjust size as needed
+            text=hover_texts,
             name="trace_asteroid_belts",
             hoverinfo="text",
         )
@@ -502,6 +585,7 @@ class Starmap:
             ],
             hoverinfo="text",
             name="Stars",
+            textfont=dict(color="rgba(180, 205, 203, 1)"),
         )
         return trace_stars
 
@@ -537,6 +621,7 @@ class Starmap:
         print("-----")
         return ""
 
+
 name_set = [
     "Haven",
     "New Frontier Alliance",
@@ -563,7 +648,7 @@ expansion_rate_set = [0.7, 0.8, 1, 1, 0.9]
 np.random.seed(50)
 
 actual_map = Starmap()
-actual_map.generate_stars(number_of_stars=10)
+actual_map.generate_stars(number_of_stars=50)
 actual_map.generate_nations(
     name_set=name_set,
     nation_colour_set=colour_set,
@@ -571,6 +656,4 @@ actual_map.generate_nations(
     expansion_rate_set=expansion_rate_set,
 )
 actual_map.assign_stars_to_nations()
-print(actual_map)
 actual_map.plot()
-
