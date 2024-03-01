@@ -267,6 +267,7 @@ class Starmap:
         print("-----")
         return ""
 
+
 class PlotGenerator:
     def __init__(self, starmap):
         self.starmap = starmap
@@ -307,7 +308,16 @@ class PlotGenerator:
             html=False,
         )
 
-    def create_figure(self, layout, trace_nations, trace_planets, trace_stars, trace_planets_orbits, trace_asteroid_belts, html=True):
+    def create_figure(
+        self,
+        layout,
+        trace_nations,
+        trace_planets,
+        trace_stars,
+        trace_planets_orbits,
+        trace_asteroid_belts,
+        html=True,
+    ):
         data = [
             trace_stars,
             trace_nations,
@@ -322,17 +332,17 @@ class PlotGenerator:
 
     def define_layout(self):
         """
-               Defines the layout for the 3D plot of the starmap.
+        Defines the layout for the 3D plot of the starmap.
 
-               This method creates a layout for the 3D plot with the following characteristics:
-               - No margins
-               - X, Y, and Z axes titled as "X", "Y", and "Z" respectively
-               - A camera positioned at (1.5, 1.5, 1.5) with its up direction along the Z-axis
-               - A legend positioned at the top left corner of the plot
+        This method creates a layout for the 3D plot with the following characteristics:
+        - No margins
+        - X, Y, and Z axes titled as "X", "Y", and "Z" respectively
+        - A camera positioned at (1.5, 1.5, 1.5) with its up direction along the Z-axis
+        - A legend positioned at the top left corner of the plot
 
-               Returns:
-                   layout (plotly.graph_objs.Layout): A Layout object representing the layout of the 3D plot.
-               """
+        Returns:
+            layout (plotly.graph_objs.Layout): A Layout object representing the layout of the 3D plot.
+        """
         grid_color = "rgba(20, 89, 104, 0.2)"
 
         layout = go.Layout(
@@ -381,15 +391,15 @@ class PlotGenerator:
 
     def trace_planets_orbits(self):
         """
-                Creates a trace for the orbits of the planets in the starmap.
+        Creates a trace for the orbits of the planets in the starmap.
 
-                This method iterates over each star in the starmap, and for each star, it iterates over its planets.
-                For each planet, it calculates the points of its orbit in the 3D space.
-                It then creates a Scatter3d trace with this information.
+        This method iterates over each star in the starmap, and for each star, it iterates over its planets.
+        For each planet, it calculates the points of its orbit in the 3D space.
+        It then creates a Scatter3d trace with this information.
 
-                Returns:
-                    trace_planets_orbits (plotly.graph_objs._scatter3d.Scatter3d): A Scatter3d trace representing the orbits of the planets in the starmap.
-                """
+        Returns:
+            trace_planets_orbits (plotly.graph_objs._scatter3d.Scatter3d): A Scatter3d trace representing the orbits of the planets in the starmap.
+        """
         orbit_x = []
         orbit_y = []
         orbit_z = []
@@ -445,15 +455,15 @@ class PlotGenerator:
 
     def trace_planets(self):
         """
-                Creates a trace for the planets in the starmap.
+        Creates a trace for the planets in the starmap.
 
-                This method iterates over each star in the starmap, and for each star, it iterates over its planets.
-                For each planet, it calculates its position in the 3D space based on the planet's orbit attribute, its mass, and its color based on its habitability.
-                It then creates a Scatter3d trace with this information.
+        This method iterates over each star in the starmap, and for each star, it iterates over its planets.
+        For each planet, it calculates its position in the 3D space based on the planet's orbit attribute, its mass, and its color based on its habitability.
+        It then creates a Scatter3d trace with this information.
 
-                Returns:
-                    trace_planets (plotly.graph_objs._scatter3d.Scatter3d): A Scatter3d trace representing the planets in the starmap.
-                """
+        Returns:
+            trace_planets (plotly.graph_objs._scatter3d.Scatter3d): A Scatter3d trace representing the planets in the starmap.
+        """
         planet_x = []
         planet_y = []
         planet_z = []
@@ -479,7 +489,7 @@ class PlotGenerator:
                 if planet.body_type == "Planet":
                     # Assume each star's planetary system has a method or attribute to check habitability
                     is_habitable = (
-                            hasattr(planet, "habitable") and planet.habitable
+                        hasattr(planet, "habitable") and planet.habitable
                     )  # Placeholder condition
                     planet_color = "green" if is_habitable else "lightgrey"
 
