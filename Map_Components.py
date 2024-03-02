@@ -20,6 +20,7 @@ class Nation:
         self.name = name
         self.current_radius = 0
         self.nation_stars = []
+        self.additional_info = None
 
         if nation_colour is None:
             # if no colour is provided, generate a random colour
@@ -44,6 +45,10 @@ class Nation:
     def expand_influence(self):
         """Expand the nation's sphere of influence based on its expansion rate."""
         self.current_radius += self.expansion_rate
+
+    def add_additional_info(self, info):
+        """Add additional information to the nation."""
+        self.additional_info = info
 
     def __str__(self):
         return f"{self.name}: Origin at {self.origin}, Current Radius: {self.current_radius}, Expansion Rate: {self.expansion_rate}"
@@ -85,6 +90,10 @@ class SmallBody:
     def __str__(self):
         info = f", {self.additional_info}" if self.additional_info else ""
         return f"{self.name}: {self.body_type} at {self.orbit:.2f} AU{info}"
+
+    def add_additional_info(self, info):
+        """Add additional information to the small body."""
+        self.additional_info = info
 
     def return_orbit_number(self):
         # Return the orbit number of the body start with 1 for the closest orbit in the system
@@ -164,6 +173,7 @@ class Star:
         self.star_map = starmap
         if name is None:
             self.name = self.generate_star_name()
+        self.additional_info = None
         # Cartesian coordinates
         self.x = x
         self.y = y
@@ -185,6 +195,10 @@ class Star:
         # Alternatively, if Cartesian coordinates are provided, convert them to spherical
         elif x is not None and y is not None and z is not None:
             self.convert_to_spherical()
+
+    def add_additional_info(self, info):
+        """Add additional information to the star."""
+        self.additional_info = info
 
     def generate_star_name(self):
         """Generates a random name for the star. Make name unique for each star."""
@@ -713,6 +727,7 @@ class Planetary_System:
         self.star = star
         self.orbits = orbits
         self.celestial_bodies = celestial_bodies if celestial_bodies is not None else []
+        self.description = None
 
     def __str__(self):
         return f"Star: {self.star.name}, Planets: {', '.join([planet.name for planet in self.planets])}"
@@ -782,3 +797,18 @@ class Planetary_System:
                     body = body.generate_planet(orbit, self.star, habitable=False)
 
             self.celestial_bodies.append(body)
+
+    def generate_description(self):
+        """Generate a description of the planetary system based on its properties."""
+        # Generate a description of the planetary system based on its properties
+        description = f"The planetary system of {self.star.name} consists of {len(self.celestial_bodies)} celestial bodies, including the star itself. "
+        if self.star.luminosity:
+            description += f"The star has a luminosity of {self.star.luminosity:.2f} solar luminosities. "
+        if self.orbits:
+            description += f"The system has {len(self.orbits)} distinct orbits, ranging from {min(self.orbits):.2f} AU to {max(self.orbits):.2f} AU. "
+        if self.celestial_bodies:
+            planet_count = sum(1 for body in self.celestial_bodies if body.body_type == "Planet")
+            asteroid_belt_count = sum(1 for body in self.celestial_bodies if body.body_type == "Asteroid Belt")
+            description += f"The system contains {planet_count} planets and {asteroid_belt_count} asteroid belts. "
+        self.description = description
+        return description

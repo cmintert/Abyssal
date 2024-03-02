@@ -286,7 +286,6 @@ class PlotGenerator:
         trace_nations = self.trace_nations()
 
         # Create trace for the planets
-
         trace_planets = self.trace_planets()
 
         # Create trace for the planetary orbits
