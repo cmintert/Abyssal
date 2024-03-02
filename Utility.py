@@ -1,6 +1,26 @@
 import numpy as np
 
 
+def insert_linebreaks(text, max_line_length=50):
+    words = text.split()
+    current_line_length = 0
+    lines = []
+    current_line = []
+
+    for word in words:
+        if current_line_length + len(word) > max_line_length:
+            lines.append(' '.join(current_line))
+            current_line = [word]
+            current_line_length = len(word) + 1  # plus one for the space
+        else:
+            current_line.append(word)
+            current_line_length += len(word) + 1  # plus one for the space
+
+    lines.append(' '.join(current_line))  # Add the last line
+
+    return '<br>'.join(lines)
+
+
 def scale_values_to_range(values, new_min=0, new_max=1):
     """
     Scale an array of values to a new specified range.

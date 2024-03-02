@@ -27,3 +27,8 @@ E
 :
 
 index.html,f\6\f6013a00b362253c64368d6eebc50ea2131754e2
+<
+nations.json,4\7\47108eccf1bf27d5b29aaab0a3ddea0f95e963d8
+:
+
+stars.json,4\9\49ef1f86760d803d6413273d99e1124ec146676d

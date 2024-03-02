@@ -50,6 +50,17 @@ class Nation:
         """Add additional information to the nation."""
         self.additional_info = info
 
+    def serialize_to_dict(self):
+        return {
+            "name": self.name,
+            "origin": self.origin,
+            "current_radius": self.current_radius,
+            "expansion_rate": self.expansion_rate,
+            "nation_colour": self.nation_colour,
+            "additional_info": self.additional_info,
+        }
+
+
     def __str__(self):
         return f"{self.name}: Origin at {self.origin}, Current Radius: {self.current_radius}, Expansion Rate: {self.expansion_rate}"
 
@@ -90,6 +101,14 @@ class SmallBody:
     def __str__(self):
         info = f", {self.additional_info}" if self.additional_info else ""
         return f"{self.name}: {self.body_type} at {self.orbit:.2f} AU{info}"
+
+    def serialize_small_body_to_dict(self):
+        return {
+            "name": self.name,
+            "body_type": self.body_type,
+            "orbit": self.orbit,
+            "additional_info": self.additional_info,
+        }
 
     def add_additional_info(self, info):
         """Add additional information to the small body."""
@@ -199,6 +218,24 @@ class Star:
     def add_additional_info(self, info):
         """Add additional information to the star."""
         self.additional_info = info
+
+    def serialize_star_to_dict(self):
+        data=  {
+            "id": self.id,
+            "name": self.name,
+            "x": self.x,
+            "y": self.y,
+            "z": self.z,
+            "r": self.r,
+            "theta": self.theta,
+            "phi": self.phi,
+            "spectral_class": self.spectral_class,
+            "luminosity": self.luminosity,
+            "mass": self.mass,
+            "additional_info": self.additional_info,
+        }
+
+        return data
 
     def generate_star_name(self):
         """Generates a random name for the star. Make name unique for each star."""
@@ -800,15 +837,26 @@ class Planetary_System:
 
     def generate_description(self):
         """Generate a description of the planetary system based on its properties."""
-        # Generate a description of the planetary system based on its properties
-        description = f"The planetary system of {self.star.name} consists of {len(self.celestial_bodies)} celestial bodies, including the star itself. "
+        # Handling singular/plural for celestial bodies
+        celestial_body_count = len(self.celestial_bodies)
+        celestial_body_word = "body" if celestial_body_count == 1 else "bodies"
+
+        description = f"The planetary system of {self.star.name[0]} consists of {celestial_body_count} {celestial_body_word}. "
         if self.star.luminosity:
             description += f"The star has a luminosity of {self.star.luminosity:.2f} solar luminosities. "
         if self.orbits:
-            description += f"The system has {len(self.orbits)} distinct orbits, ranging from {min(self.orbits):.2f} AU to {max(self.orbits):.2f} AU. "
-        if self.celestial_bodies:
+            orbit_count = len(self.orbits)
+            orbit_word = "orbit" if orbit_count == 1 else "orbits"
+            description += f"The system has {orbit_count} distinct {orbit_word}, ranging from {min(self.orbits):.2f} AU to {max(self.orbits):.2f} AU. "
+        if celestial_body_count > 0:
             planet_count = sum(1 for body in self.celestial_bodies if body.body_type == "Planet")
             asteroid_belt_count = sum(1 for body in self.celestial_bodies if body.body_type == "Asteroid Belt")
-            description += f"The system contains {planet_count} planets and {asteroid_belt_count} asteroid belts. "
+
+            # Handling singular/plural for planets
+            planet_word = "planet" if planet_count == 1 else "planets"
+            # Handling singular/plural for asteroid belts
+            asteroid_belt_word = "asteroid belt" if asteroid_belt_count == 1 else "asteroid belts"
+
+            description += f"The system contains {planet_count} {planet_word} and {asteroid_belt_count} {asteroid_belt_word}. "
         self.description = description
         return description

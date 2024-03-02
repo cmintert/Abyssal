@@ -2,8 +2,8 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.offline import plot
 from Map_Components import Nation, Star, Planetary_System
-from Utility import scale_values_to_range
-
+from Utility import scale_values_to_range, insert_linebreaks
+import json
 
 # Generate stars
 class Starmap:
@@ -22,7 +22,29 @@ class Starmap:
         self.used_star_names = []
         self.plot_generator = PlotGenerator(self)
 
-    def generate_stars(self, number_of_stars=500, map_radius=500):
+    def write_nations_to_JSON(self, filename="nations.json"):
+        #use serialize to dict function of nation to write to JSON
+        nations = []
+        for nation in self.nations:
+            nations.append(nation.serialize_to_dict())
+        nation_structure = {
+            "nations": nations
+        }
+        with open(filename, "w",) as file:
+            json.dump(nation_structure, file, indent=4)
+
+    def write_stars_to_JSON(self, filename="stars.json"):
+        #use serialize to dict function of star to write to JSON
+        stars = []
+        for star in self.stars:
+            stars.append(star.serialize_star_to_dict())
+        star_structure = {
+            "stars": stars
+        }
+        with open(filename, "w",) as file:
+            json.dump(star_structure, file, indent=4)
+
+    def generate_star_systems(self, number_of_stars=500, map_radius=500):
 
         for id in range(number_of_stars):
             phi, r, theta = self.random_spherical_coordinate(map_radius)
@@ -43,6 +65,7 @@ class Starmap:
 
             # generate planets for each orbit
             current_star.planetary_system.generate_planets_and_asteroid_belts()
+            current_star.planetary_system.generate_description()
 
             # add star to map
             (self.stars.append(current_star))
@@ -297,6 +320,9 @@ class PlotGenerator:
         # Create layout for the plot
         layout = self.define_layout()
 
+        # Create trace for the planetary system
+        trace_planetary_system = self.trace_planetary_system()
+
         self.create_figure(
             layout,
             trace_nations,
@@ -304,6 +330,7 @@ class PlotGenerator:
             trace_stars,
             trace_planets_orbits,
             trace_asteroid_belts,
+            trace_planetary_system,
             html=False,
         )
 
@@ -315,6 +342,7 @@ class PlotGenerator:
         trace_stars,
         trace_planets_orbits,
         trace_asteroid_belts,
+        trace_planetary_system,
         html=True,
     ):
         data = [
@@ -323,6 +351,7 @@ class PlotGenerator:
             trace_planets,
             trace_planets_orbits,
             trace_asteroid_belts,
+            trace_planetary_system,
         ]
         fig = go.Figure(data=data, layout=layout)
         if html:
@@ -628,6 +657,39 @@ class PlotGenerator:
         )
         return trace_stars
 
+    def trace_planetary_system(self):
+        """Create a trace that shows the description of the planetary system when you hover offer the star.
+        The description has to show up as a text box in the lower right corner of the plot.
+        The text box has a cyan border and a black background, the text is also cyan
+        The text box should be anchored to the lower right corner of the plot
+        The text box should be visible when you hover over the star"""
+
+        descriptions = []
+        for star in self.starmap.stars:
+            description = star.planetary_system.description
+            description = insert_linebreaks(description, max_line_length=50)
+
+            descriptions.append(description)
+
+        trace_planetary_system = go.Scatter3d(
+            x=[star.x for star in self.starmap.stars],
+            y=[star.y for star in self.starmap.stars],
+            z=[star.z for star in self.starmap.stars],
+            mode="markers",
+            opacity=0,
+            text=descriptions,
+            hoverinfo="text",
+            name="Planetary System",
+            # Box color black, border color cyan, text color cyan, anchored to bottom right
+            hoverlabel=dict(
+                bgcolor="black",
+                bordercolor="cyan",
+                font=dict(color="cyan", size=12, family="Futura, sans-serif"),
+                align="left",
+            ),
+        )
+        return trace_planetary_system
+
 
 name_set = [
     "Haven",
@@ -655,7 +717,7 @@ expansion_rate_set = [0.7, 0.8, 1, 1, 0.9]
 np.random.seed(50)
 
 actual_map = Starmap()
-actual_map.generate_stars(number_of_stars=50)
+actual_map.generate_star_systems(number_of_stars=5)
 actual_map.generate_nations(
     name_set=name_set,
     nation_colour_set=colour_set,
@@ -663,4 +725,7 @@ actual_map.generate_nations(
     expansion_rate_set=expansion_rate_set,
 )
 actual_map.assign_stars_to_nations()
-actual_map.plot()
+#actual_map.plot()
+
+actual_map.write_nations_to_JSON()
+actual_map.write_stars_to_JSON()
