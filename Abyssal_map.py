@@ -1,9 +1,10 @@
 import numpy as np
 import plotly.graph_objects as go
+import json
+
 from plotly.offline import plot
 from Map_Components import Nation, Star, Planetary_System
 from Utility import scale_values_to_range, insert_linebreaks
-import json
 
 # Generate stars
 class Starmap:
@@ -22,27 +23,49 @@ class Starmap:
         self.used_star_names = []
         self.plot_generator = PlotGenerator(self)
 
-    def write_nations_to_JSON(self, filename="nations.json"):
-        #use serialize to dict function of nation to write to JSON
-        nations = []
-        for nation in self.nations:
-            nations.append(nation.serialize_to_dict())
-        nation_structure = {
-            "nations": nations
-        }
-        with open(filename, "w",) as file:
-            json.dump(nation_structure, file, indent=4)
-
-    def write_stars_to_JSON(self, filename="stars.json"):
-        #use serialize to dict function of star to write to JSON
-        stars = []
+    def write_stars_to_JSON(self):
+        star_data = []
         for star in self.stars:
-            stars.append(star.serialize_star_to_dict())
-        star_structure = {
-            "stars": stars
-        }
-        with open(filename, "w",) as file:
-            json.dump(star_structure, file, indent=4)
+            star_data.append(star.serialize_star_to_dict())
+
+        with open("star_data.json","w") as file:
+            json.dump(star_data, file, indent=4)
+
+    def write_nations_to_JSON(self):
+        nation_data = []
+        for nation in self.nations:
+            nation_data.append(nation.serialize_nation_to_dict())
+
+        with open("nation_data.json","w") as file:
+            json.dump(nation_data, file, indent=4)
+
+    def write_planetary_systems_to_JSON(self):
+        planetary_system_data = []
+        for star in self.stars:
+            planetary_system_data.append(star.planetary_system.serialize_planetary_system_to_dict())
+
+        with open("planetary_system_data.json","w") as file:
+            json.dump(planetary_system_data, file, indent=4)
+
+    def write_planets_to_JSON(self):
+        planet_data = []
+        for star in self.stars:
+            for planet in star.planetary_system.celestial_bodies:
+                if planet.body_type == "Planet":
+                    planet_data.append(planet.serialize_planet_to_dict())
+
+        with open("planet_data.json","w") as file:
+            json.dump(planet_data, file, indent=4)
+
+    def write_asteroid_belts_to_JSON(self):
+        asteroid_belt_data = []
+        for star in self.stars:
+            for belt in star.planetary_system.celestial_bodies:
+                if belt.body_type == "Asteroid Belt":
+                    asteroid_belt_data.append(belt.serialize_asteroid_belt_to_dict())
+
+        with open("asteroid_belt_data.json","w") as file:
+            json.dump(asteroid_belt_data, file, indent=4)
 
     def generate_star_systems(self, number_of_stars=500, map_radius=500):
 
@@ -717,7 +740,7 @@ expansion_rate_set = [0.7, 0.8, 1, 1, 0.9]
 np.random.seed(50)
 
 actual_map = Starmap()
-actual_map.generate_star_systems(number_of_stars=5)
+actual_map.generate_star_systems(number_of_stars=1)
 actual_map.generate_nations(
     name_set=name_set,
     nation_colour_set=colour_set,
@@ -725,7 +748,11 @@ actual_map.generate_nations(
     expansion_rate_set=expansion_rate_set,
 )
 actual_map.assign_stars_to_nations()
-#actual_map.plot()
+# actual_map.plot()
 
-actual_map.write_nations_to_JSON()
+
 actual_map.write_stars_to_JSON()
+actual_map.write_nations_to_JSON()
+actual_map.write_planetary_systems_to_JSON()
+actual_map.write_planets_to_JSON()
+actual_map.write_asteroid_belts_to_JSON()

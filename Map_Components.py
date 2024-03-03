@@ -1,6 +1,9 @@
 import math
 import numpy as np
 from Utility import StarNames, PlanetNames
+import openai
+import os
+from openai import OpenAI
 
 SPECTRAL_CLASSES_LUM_MASS_RATIO = {
     "G-Type": 1 / 4,
@@ -50,13 +53,19 @@ class Nation:
         """Add additional information to the nation."""
         self.additional_info = info
 
-    def serialize_to_dict(self):
+    def serialize_nation_to_dict(self):
+
+        #stars in nation
+        included_stars_id = []
+        for star in self.nation_stars:
+            included_stars_id.append(star.id)
         return {
             "name": self.name,
             "origin": self.origin,
             "current_radius": self.current_radius,
             "expansion_rate": self.expansion_rate,
             "nation_colour": self.nation_colour,
+            "nation_stars": included_stars_id,
             "additional_info": self.additional_info,
         }
 
@@ -107,6 +116,7 @@ class SmallBody:
             "name": self.name,
             "body_type": self.body_type,
             "orbit": self.orbit,
+            "star": self.star.serialize_star_to_dict(),
             "additional_info": self.additional_info,
         }
 
@@ -220,7 +230,7 @@ class Star:
         self.additional_info = info
 
     def serialize_star_to_dict(self):
-        data=  {
+        data = {
             "id": self.id,
             "name": self.name,
             "x": self.x,
@@ -333,6 +343,25 @@ class Planet(SmallBody):
 
     def __str__(self):
         return f"{self.name}: {self.composition} planet at {self.orbit:.2f} AU, Mass: {self.mass:.2f} Earth masses, Radius: {self.radius:.2f} km, Density: {self.density:.2f} g/cm^3, Surface Temperature: {self.surface_temperature:.2f}°C, Presence of Water: {self.presence_of_water}, Atmosphere: {self.atmosphere}, Axial Tilt: {self.tilt}°, Rotation Period: {self.rotation_period} hours, Habitable: {self.habitable}"
+
+    def serialize_planet_to_dict(self):
+        data = super().serialize_small_body_to_dict()
+        data.update({
+            "mass": self.mass,
+            "density": self.density,
+            "radius": self.radius,
+            "composition": self.composition,
+            "orbital_time": self.orbital_time,
+            "rotation_period": self.rotation_period,
+            "tilt": self.tilt,
+            "moons": self.moons,
+            "atmosphere": self.atmosphere,
+            "surface_temperature": self.surface_temperature,
+            "presence_of_water": self.presence_of_water,
+            "albedo": self.albedo,
+            "habitable": self.habitable
+        })
+        return data
 
     def generate_planet(self, orbit, star, habitable=False):
         """
@@ -724,6 +753,13 @@ class AsteroidBelt(SmallBody):
     def __str__(self):
         return f"{self.star.name}!!!:  {self.name}: {self.body_type} at {self.orbit:.2f} AU, Density: {self.density}"
 
+    def serialize_asteroid_belt_to_dict(self):
+        data = super().serialize_small_body_to_dict()
+        data.update({
+            "density": self.density
+        })
+        return data
+
     def generate_asteroid_belt(self, orbit, star):
         """
         Generate an asteroid belt based on its orbit and the properties of its star.
@@ -768,6 +804,15 @@ class Planetary_System:
 
     def __str__(self):
         return f"Star: {self.star.name}, Planets: {', '.join([planet.name for planet in self.planets])}"
+
+    def serialize_planetary_system_to_dict(self):
+        data = {
+            "star": self.star.serialize_star_to_dict(),
+            "orbits": self.orbits,
+            "celestial_bodies": [body.serialize_small_body_to_dict() for body in self.celestial_bodies],
+            "description": self.description
+        }
+        return data
 
     def generate_orbits(self, include_habitable_zone=True, num_orbits=1):
         """
@@ -849,14 +894,56 @@ class Planetary_System:
             orbit_word = "orbit" if orbit_count == 1 else "orbits"
             description += f"The system has {orbit_count} distinct {orbit_word}, ranging from {min(self.orbits):.2f} AU to {max(self.orbits):.2f} AU. "
         if celestial_body_count > 0:
-            planet_count = sum(1 for body in self.celestial_bodies if body.body_type == "Planet")
-            asteroid_belt_count = sum(1 for body in self.celestial_bodies if body.body_type == "Asteroid Belt")
+            planet_count = sum(
+                1 for body in self.celestial_bodies if body.body_type == "Planet"
+            )
+            asteroid_belt_count = sum(
+                1 for body in self.celestial_bodies if body.body_type == "Asteroid Belt"
+            )
 
             # Handling singular/plural for planets
             planet_word = "planet" if planet_count == 1 else "planets"
             # Handling singular/plural for asteroid belts
-            asteroid_belt_word = "asteroid belt" if asteroid_belt_count == 1 else "asteroid belts"
+            asteroid_belt_word = (
+                "asteroid belt" if asteroid_belt_count == 1 else "asteroid belts"
+            )
 
             description += f"The system contains {planet_count} {planet_word} and {asteroid_belt_count} {asteroid_belt_word}. "
+            # Add a list of all celestial bodies and theit orbits
+            description += "The celestial bodies in the system are: "
+            for body in self.celestial_bodies:
+                description += f"{body.name} at {body.orbit:.2f} AU, "
+
         self.description = description
         return description
+
+    def assembel_gpt_data(self):
+        data = {
+            "star": self.star.name,
+            "orbits": self.orbits,
+            "celestial_bodies": [body.serialize_small_body_to_dict() for body in self.celestial_bodies],
+        }
+        return data
+
+    def generate_description_gpt(data):
+
+        openai.OPENAI_API_KEY = os.getenv("OpenAI")
+
+        client = OpenAI()
+
+        # User input to proceed
+
+        input("Press Enter to continue...")
+
+        completion = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": "Hello!"}
+            ]
+        )
+
+        print(completion.choices[0].usage)
+        print("-------------------")
+        print(completion.choices[0].message)
+        return completion.choices[0].message
