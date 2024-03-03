@@ -321,6 +321,7 @@ class Planet(SmallBody):
         radius=None,
         albedo=None,
         orbit=None,
+        gravity=None,
         habitable=False,
     ):
         super().__init__(name, star, "Planet", orbit)
@@ -340,6 +341,7 @@ class Planet(SmallBody):
         self.radius = radius
         self.albedo = albedo
         self.habitable = habitable
+        self.gravity = gravity
 
     def __str__(self):
         return f"{self.name}: {self.composition} planet at {self.orbit:.2f} AU, Mass: {self.mass:.2f} Earth masses, Radius: {self.radius:.2f} km, Density: {self.density:.2f} g/cm^3, Surface Temperature: {self.surface_temperature:.2f}°C, Presence of Water: {self.presence_of_water}, Atmosphere: {self.atmosphere}, Axial Tilt: {self.tilt}°, Rotation Period: {self.rotation_period} hours, Habitable: {self.habitable}"
@@ -359,6 +361,7 @@ class Planet(SmallBody):
             "surface_temperature": self.surface_temperature,
             "presence_of_water": self.presence_of_water,
             "albedo": self.albedo,
+            "gravity": self.gravity,
             "habitable": self.habitable
         })
         return data
@@ -456,7 +459,8 @@ class Planet(SmallBody):
         else:
             self.has_magnetic_field = self.generate_magnetic_field(self)
 
-        print(self)
+        # Calculate the planet's gravity
+        self.gravity = self.generate_gravity()
 
         return self
 
@@ -739,10 +743,26 @@ class Planet(SmallBody):
 
         return has_magnetic_field
 
+    def generate_gravity(self):
+        """
+        Generate the gravity of the planet based on its mass and radius.
+        """
+        # Calculate the gravity based on mass and radius
+        # Using the formula: gravity = (G * mass) / radius^2
+        # Where G is the gravitational constant
+        G = 6.674 * (10**-11)
+        gravity = (G * self.mass * (5.972 * (10**24))) / ((self.radius * 1000)**2)
+
+        print(f"Gravity of {self.name}: {gravity:.2f} m/s^2")
+
+        return gravity
+
+
     def adjust_orbit(self, orbit_adjustment):
         """Adjust the orbit of the planet"""
         new_orbit = self.orbit + orbit_adjustment
         return new_orbit
+
 
 
 class AsteroidBelt(SmallBody):
@@ -751,7 +771,7 @@ class AsteroidBelt(SmallBody):
         self.density = None
 
     def __str__(self):
-        return f"{self.star.name}!!!:  {self.name}: {self.body_type} at {self.orbit:.2f} AU, Density: {self.density}"
+        return f"{self.star.name[0]}:  {self.name}: {self.body_type} at {self.orbit:.2f} AU, Density: {self.density}"
 
     def serialize_asteroid_belt_to_dict(self):
         data = super().serialize_small_body_to_dict()
@@ -774,8 +794,6 @@ class AsteroidBelt(SmallBody):
 
         # Calculate the density of the asteroid belt
         # self.additional_info = self.generate_density()
-
-        print(self)
 
         return self
 
@@ -852,7 +870,6 @@ class Planetary_System:
             initial_orbit = new_orbit  # Update for next iteration
 
         self.orbits.sort()  # Sort orbits for easier readability/processing
-        print(f"Generated orbits: {self.orbits}")
 
     def generate_planets_and_asteroid_belts(self):
         self.celestial_bodies = []
