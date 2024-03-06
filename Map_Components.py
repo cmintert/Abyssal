@@ -314,12 +314,11 @@ class Planet(SmallBody):
         orbital_time=None,
         rotation_period=None,
         tilt=None,
-        moons=None,
+        moons="Unkonwn",
         atmosphere=None,
         surface_temperature=None,
         presence_of_water=None,
         radius=None,
-        albedo=None,
         orbit=None,
         gravity=None,
         habitable=False,
@@ -339,12 +338,23 @@ class Planet(SmallBody):
         self.surface_temperature = surface_temperature
         self.presence_of_water = presence_of_water
         self.radius = radius
-        self.albedo = albedo
         self.habitable = habitable
         self.gravity = gravity
 
     def __str__(self):
         return f"{self.name}: {self.composition} planet at {self.orbit:.2f} AU, Mass: {self.mass:.2f} Earth masses, Radius: {self.radius:.2f} km, Density: {self.density:.2f} g/cm^3, Surface Temperature: {self.surface_temperature:.2f}°C, Presence of Water: {self.presence_of_water}, Atmosphere: {self.atmosphere}, Axial Tilt: {self.tilt}°, Rotation Period: {self.rotation_period} hours, Habitable: {self.habitable}"
+
+    def create_description(self):
+        """Generate a detailed, human-readable description of the planet."""
+        description = f"Planet {self.name} is a {self.composition} planet orbiting the star {self.star.name[0]} at a distance of {self.orbit:.2f} AU. "
+        description += f"It has a mass of {self.mass:.2f} Earth masses and a radius of {self.radius:.2f} km. "
+        description += f"The planet's density is {self.density:.2f} g/cm^3 and it has a surface temperature of {self.surface_temperature:.2f}°C. "
+        description += f"The planet's atmosphere is described as: {self.atmosphere}. "
+        description += f"The axial tilt of the planet is {self.tilt}° and it has a rotation period of {self.rotation_period} hours. "
+        description += f"The planet's gravity is {self.gravity:.2f} m/s^2. "
+        description += f"{'The planet is habitable.' if self.habitable else 'The planet is inhabitable'}. "
+        description += f"Presence of water: {self.presence_of_water}. "
+        return description
 
     def serialize_planet_to_dict(self):
         data = super().serialize_small_body_to_dict()
@@ -360,7 +370,6 @@ class Planet(SmallBody):
             "atmosphere": self.atmosphere,
             "surface_temperature": self.surface_temperature,
             "presence_of_water": self.presence_of_water,
-            "albedo": self.albedo,
             "gravity": self.gravity,
             "habitable": self.habitable
         })
@@ -462,7 +471,35 @@ class Planet(SmallBody):
         # Calculate the planet's gravity
         self.gravity = self.generate_gravity()
 
+        #calculate the orbital time
+        self.orbital_time = self.generate_orbital_time()
+
+        # Generate a description of the planet
+        self.additional_info = self.create_description()
+
+        self.check_attributes()
+
         return self
+
+
+    def generate_orbital_time(self):
+        """
+        Generate the orbital time of the planet based on its orbit and the star's mass.
+        """
+        # Calculate the orbital time based on the star's mass and the planet's orbit
+        # Using the formula: orbital time = 2 * pi * sqrt((orbit distance^3) / (G * star mass))
+        # Where G is the gravitational constant
+        G = 6.674 * (10**-11)
+        orbital_time = 2 * math.pi * math.sqrt(
+            (self.orbit**3) / (G * (self.star.mass * 1.989 * (10**30)))
+        )
+        return orbital_time
+
+    def check_attributes(self):
+        """Check if all attributes are set and raise an error if not."""
+        for attr, value in self.__dict__.items():
+            if value is None:
+                raise ValueError(f"The attribute '{attr}' is not set.")
 
     @staticmethod
     def generate_planet_mass(orbit_distance, goldilocks_zone):
@@ -601,6 +638,20 @@ class Planet(SmallBody):
             return "Very thick atmosphere of hydrogen and helium"
         else:
             return "Unknown atmospheric composition"
+
+    def generate_breathable_amtmosphere_composition(self):
+        """
+        Generate a breathable atmosphere composition for the planet.
+
+        """
+        gases = {
+            'Oxygen (O₂)': random.uniform(19.5, 23.5),
+            'Nitrogen (N₂)': random.uniform(75, 78.5),
+            'Carbon Dioxide (CO₂)': random.uniform(0.04, 0.1),
+            'Argon (Ar)': random.uniform(0.01, 0.1),
+            'Trace Gases': random.uniform(0.0001, 0.01)
+        }
+        return gases
 
     @staticmethod
     def estimate_surface_temperature(
@@ -753,8 +804,6 @@ class Planet(SmallBody):
         G = 6.674 * (10**-11)
         gravity = (G * self.mass * (5.972 * (10**24))) / ((self.radius * 1000)**2)
 
-        print(f"Gravity of {self.name}: {gravity:.2f} m/s^2")
-
         return gravity
 
 
@@ -883,7 +932,7 @@ class Planetary_System:
             if (
                 np.random.rand() > 0.75 and not is_in_goldilocks_zone
             ):  # 25% chance to generate an asteroid belt outside Goldilocks zone
-                print(f"Generating asteroid belt at {orbit} AU")
+
                 body = AsteroidBelt(star=self.star)
                 body = body.generate_asteroid_belt(orbit, self.star)
 

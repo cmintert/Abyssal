@@ -354,7 +354,7 @@ class PlotGenerator:
             trace_planets_orbits,
             trace_asteroid_belts,
             trace_planetary_system,
-            html=False,
+            html=True,
         )
 
     def create_figure(
@@ -521,12 +521,13 @@ class PlotGenerator:
         planet_mass = []
         planet_colors = []
         planet_names = []
+        planet_additional_info = []
 
         # Get all orbits and normalize them
         all_orbits = [
             planet.orbit
             for star in self.starmap.stars
-            for planet in star.planetary_system.celestial_bodies
+                for planet in star.planetary_system.celestial_bodies
         ]
         normalized_orbits = scale_values_to_range(all_orbits, 1, 17)
 
@@ -534,32 +535,38 @@ class PlotGenerator:
         for star in self.starmap.stars:
             for planet in star.planetary_system.celestial_bodies:
                 # Use the normalized orbit as the offset
+                print("Now plotting planet", planet.name, " in system: ", star.name[0], " in orbit: ", planet.orbit)
                 offset = normalized_orbits[orbit_index]
                 orbit_index += 1
 
+                # gather additional info
+                additional_info = planet.additional_info
+                if additional_info is not None:
+                    additional_info = insert_linebreaks(additional_info, max_line_length=50)
+                print("Additional info: ", additional_info)
+                planet_additional_info.append(additional_info)
+
                 if planet.body_type == "Planet":
-                    # Assume each star's planetary system has a method or attribute to check habitability
-                    is_habitable = (
-                        hasattr(planet, "habitable") and planet.habitable
-                    )  # Placeholder condition
-                    planet_color = "green" if is_habitable else "lightgrey"
+                    planet_color = "green" if planet.habitable else "lightgrey"
+                    print("The habitability marker color is: ", planet_color)
 
-                    # Add the planet dot position and color
-                    angle = np.random.uniform(
-                        0, 2 * np.pi
-                    )  # Random angle for the position on the orbit
-                    planet_x.append(star.x + offset * np.cos(angle))
-                    planet_y.append(star.y + offset * np.sin(angle))
-                    planet_z.append(star.z)
 
-                    if planet.body_type == "Planet":
-                        planet_mass.append(planet.mass)
-                    else:
-                        planet_mass.append(1)
+                # Add the planet dot position and color
+                angle = np.random.uniform(
+                    0, 2 * np.pi
+                )  # Random angle for the position on the orbit
+                planet_x.append(star.x + offset * np.cos(angle))
+                planet_y.append(star.y + offset * np.sin(angle))
+                planet_z.append(star.z)
 
-                    planet_colors.append(planet_color)
+                if planet.body_type == "Planet":
+                    planet_mass.append(planet.mass)
+                else:
+                    planet_mass.append(0)
 
-                    planet_names.append(planet.name)
+                planet_colors.append(planet_color)
+
+                planet_names.append(planet.name)
 
         # Create trace for the planetary dots
         trace_planets = go.Scatter3d(
@@ -571,7 +578,7 @@ class PlotGenerator:
                 size=scale_values_to_range(planet_mass, 7, 12),  # Adjust size as needed
                 color=planet_colors,  # Color based on habitability
             ),
-            text=planet_names,
+            text=[f'{name}: {info}' for name, info in zip(planet_names, planet_additional_info)],
             name="trace_planets",
             hoverinfo="text",
         )
@@ -689,6 +696,7 @@ class PlotGenerator:
 
         descriptions = []
         for star in self.starmap.stars:
+
             description = star.planetary_system.description
             description = insert_linebreaks(description, max_line_length=50)
 
@@ -740,7 +748,7 @@ expansion_rate_set = [0.7, 0.8, 1, 1, 0.9]
 np.random.seed(50)
 
 actual_map = Starmap()
-actual_map.generate_star_systems(number_of_stars=1)
+actual_map.generate_star_systems(number_of_stars=100)
 actual_map.generate_nations(
     name_set=name_set,
     nation_colour_set=colour_set,
@@ -748,7 +756,7 @@ actual_map.generate_nations(
     expansion_rate_set=expansion_rate_set,
 )
 actual_map.assign_stars_to_nations()
-# actual_map.plot()
+actual_map.plot()
 
 
 actual_map.write_stars_to_JSON()
