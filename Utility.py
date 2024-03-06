@@ -9,16 +9,16 @@ def insert_linebreaks(text, max_line_length=50):
 
     for word in words:
         if current_line_length + len(word) > max_line_length:
-            lines.append(' '.join(current_line))
+            lines.append(" ".join(current_line))
             current_line = [word]
             current_line_length = len(word) + 1  # plus one for the space
         else:
             current_line.append(word)
             current_line_length += len(word) + 1  # plus one for the space
 
-    lines.append(' '.join(current_line))  # Add the last line
+    lines.append(" ".join(current_line))  # Add the last line
 
-    return '<br>'.join(lines)
+    return "<br>".join(lines)
 
 
 def scale_values_to_range(values, new_min=0, new_max=1):
@@ -213,3 +213,99 @@ class PlanetNames:
         # Randomly select a format option
         name = np.random.choice(format_options)
         return name
+
+
+class RareMinerals:
+    properties = {
+        "WaterIce": {
+            "rarity": 0.8,
+            "value": 100,
+            "description": "Vital for life support and fuel in space.",
+        },
+        "Platinum": {
+            "rarity": 0.05,
+            "value": 900,
+            "description": "Used in electronics, jewelry, and catalysts.",
+        },
+        "Palladium": {
+            "rarity": 0.04,
+            "value": 850,
+            "description": "Important for fuel cells and electronics.",
+        },
+        "Gold": {
+            "rarity": 0.06,
+            "value": 800,
+            "description": "Valuable for electronics, currency, and decoration.",
+        },
+        "Neodymium": {
+            "rarity": 0.1,
+            "value": 750,
+            "description": "Essential for powerful magnets in motors and generators.",
+        },
+        "Rhodium": {
+            "rarity": 0.02,
+            "value": 1000,
+            "description": "Used in high-performance alloys and catalytic converters.",
+        },
+        "Iridium": {
+            "rarity": 0.03,
+            "value": 950,
+            "description": "Used in high-temperature and corrosion-resistant alloys.",
+        },
+        "Titanium": {
+            "rarity": 0.2,
+            "value": 500,
+            "description": "Strong, lightweight, used in aerospace and medical implants.",
+        },
+        "Helium3": {
+            "rarity": 0.07,
+            "value": 1200,
+            "description": "Potential fuel for nuclear fusion, rare on Earth.",
+        },
+        "Lithium": {
+            "rarity": 0.15,
+            "value": 600,
+            "description": "Critical for rechargeable batteries and mood-stabilizing drugs.",
+        },
+        "Copper": {
+            "rarity": 0.5,
+            "value": 400,
+            "description": "Crucial for electrical wiring and electronics.",
+        },
+        "Nickel": {
+            "rarity": 0.45,
+            "value": 350,
+            "description": "Used in stainless steel and batteries.",
+        },
+        "Tantalum": {
+            "rarity": 0.08,
+            "value": 700,
+            "description": "Important for electronic components and mobile phones.",
+        },
+        "Cobalt": {
+            "rarity": 0.09,
+            "value": 650,
+            "description": "Critical for rechargeable batteries and superalloys.",
+        },
+        "Xenon": {
+            "rarity": 0.02,
+            "value": 1200,
+            "description": "Used in lighting, electronics, and space propulsion.",
+        },
+        "Phosphorus": {
+            "rarity": 0.3,
+            "value": 500,
+            "description": "Essential for agriculture and biochemical processes.",
+        },
+        # Add more as needed
+    }
+
+    @staticmethod
+    def get_mineral_info(mineral_name):
+        """Returns the properties of the requested mineral."""
+        return RareMinerals.properties.get(mineral_name, None)
+
+    def get_random_mineral(self):
+        """Returns a random mineral and its properties."""
+        mineral_name = np.random.choice(list(self.properties.keys()))
+        return mineral_name

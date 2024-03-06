@@ -55,7 +55,7 @@ class Nation:
 
     def serialize_nation_to_dict(self):
 
-        #stars in nation
+        # stars in nation
         included_stars_id = []
         for star in self.nation_stars:
             included_stars_id.append(star.id)
@@ -68,7 +68,6 @@ class Nation:
             "nation_stars": included_stars_id,
             "additional_info": self.additional_info,
         }
-
 
     def __str__(self):
         return f"{self.name}: Origin at {self.origin}, Current Radius: {self.current_radius}, Expansion Rate: {self.expansion_rate}"
@@ -358,21 +357,23 @@ class Planet(SmallBody):
 
     def serialize_planet_to_dict(self):
         data = super().serialize_small_body_to_dict()
-        data.update({
-            "mass": self.mass,
-            "density": self.density,
-            "radius": self.radius,
-            "composition": self.composition,
-            "orbital_time": self.orbital_time,
-            "rotation_period": self.rotation_period,
-            "tilt": self.tilt,
-            "moons": self.moons,
-            "atmosphere": self.atmosphere,
-            "surface_temperature": self.surface_temperature,
-            "presence_of_water": self.presence_of_water,
-            "gravity": self.gravity,
-            "habitable": self.habitable
-        })
+        data.update(
+            {
+                "mass": self.mass,
+                "density": self.density,
+                "radius": self.radius,
+                "composition": self.composition,
+                "orbital_time": self.orbital_time,
+                "rotation_period": self.rotation_period,
+                "tilt": self.tilt,
+                "moons": self.moons,
+                "atmosphere": self.atmosphere,
+                "surface_temperature": self.surface_temperature,
+                "presence_of_water": self.presence_of_water,
+                "gravity": self.gravity,
+                "habitable": self.habitable,
+            }
+        )
         return data
 
     def generate_planet(self, orbit, star, habitable=False):
@@ -471,7 +472,7 @@ class Planet(SmallBody):
         # Calculate the planet's gravity
         self.gravity = self.generate_gravity()
 
-        #calculate the orbital time
+        # calculate the orbital time
         self.orbital_time = self.generate_orbital_time()
 
         # Generate a description of the planet
@@ -481,7 +482,6 @@ class Planet(SmallBody):
 
         return self
 
-
     def generate_orbital_time(self):
         """
         Generate the orbital time of the planet based on its orbit and the star's mass.
@@ -490,8 +490,10 @@ class Planet(SmallBody):
         # Using the formula: orbital time = 2 * pi * sqrt((orbit distance^3) / (G * star mass))
         # Where G is the gravitational constant
         G = 6.674 * (10**-11)
-        orbital_time = 2 * math.pi * math.sqrt(
-            (self.orbit**3) / (G * (self.star.mass * 1.989 * (10**30)))
+        orbital_time = (
+            2
+            * math.pi
+            * math.sqrt((self.orbit**3) / (G * (self.star.mass * 1.989 * (10**30))))
         )
         return orbital_time
 
@@ -645,11 +647,11 @@ class Planet(SmallBody):
 
         """
         gases = {
-            'Oxygen (O₂)': random.uniform(19.5, 23.5),
-            'Nitrogen (N₂)': random.uniform(75, 78.5),
-            'Carbon Dioxide (CO₂)': random.uniform(0.04, 0.1),
-            'Argon (Ar)': random.uniform(0.01, 0.1),
-            'Trace Gases': random.uniform(0.0001, 0.01)
+            "Oxygen (O₂)": random.uniform(19.5, 23.5),
+            "Nitrogen (N₂)": random.uniform(75, 78.5),
+            "Carbon Dioxide (CO₂)": random.uniform(0.04, 0.1),
+            "Argon (Ar)": random.uniform(0.01, 0.1),
+            "Trace Gases": random.uniform(0.0001, 0.01),
         }
         return gases
 
@@ -802,16 +804,14 @@ class Planet(SmallBody):
         # Using the formula: gravity = (G * mass) / radius^2
         # Where G is the gravitational constant
         G = 6.674 * (10**-11)
-        gravity = (G * self.mass * (5.972 * (10**24))) / ((self.radius * 1000)**2)
+        gravity = (G * self.mass * (5.972 * (10**24))) / ((self.radius * 1000) ** 2)
 
         return gravity
-
 
     def adjust_orbit(self, orbit_adjustment):
         """Adjust the orbit of the planet"""
         new_orbit = self.orbit + orbit_adjustment
         return new_orbit
-
 
 
 class AsteroidBelt(SmallBody):
@@ -824,9 +824,7 @@ class AsteroidBelt(SmallBody):
 
     def serialize_asteroid_belt_to_dict(self):
         data = super().serialize_small_body_to_dict()
-        data.update({
-            "density": self.density
-        })
+        data.update({"density": self.density})
         return data
 
     def generate_asteroid_belt(self, orbit, star):
@@ -876,8 +874,10 @@ class Planetary_System:
         data = {
             "star": self.star.serialize_star_to_dict(),
             "orbits": self.orbits,
-            "celestial_bodies": [body.serialize_small_body_to_dict() for body in self.celestial_bodies],
-            "description": self.description
+            "celestial_bodies": [
+                body.serialize_small_body_to_dict() for body in self.celestial_bodies
+            ],
+            "description": self.description,
         }
         return data
 
@@ -987,7 +987,9 @@ class Planetary_System:
         data = {
             "star": self.star.name,
             "orbits": self.orbits,
-            "celestial_bodies": [body.serialize_small_body_to_dict() for body in self.celestial_bodies],
+            "celestial_bodies": [
+                body.serialize_small_body_to_dict() for body in self.celestial_bodies
+            ],
         }
         return data
 
@@ -1005,11 +1007,59 @@ class Planetary_System:
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": "Hello!"}
-            ]
+                {"role": "user", "content": "Hello!"},
+            ],
         )
 
         print(completion.choices[0].usage)
         print("-------------------")
         print(completion.choices[0].message)
         return completion.choices[0].message
+
+
+class MineralMap:
+
+    def __init__(self, mineral, zone_points):
+
+        self.mineral = mineral
+        self.zone_points = zone_points
+
+    # create an influence map for the mineral based on zone points
+    def create_influence_map(self, area, zone_points):
+        """
+        Create an influence map for the mineral based on zone points.
+        """
+        influence_map = np.zeros((area, area, area))
+        for point in zone_points:
+            x, y, z, weight = point
+            influence_map[x, y, z] = weight
+        return influence_map
+
+    def find_nearest_zone_point(space_point, zone_points):
+        x, y, z = space_point  # Unpack the coordinates of the given point
+        nearest_zone = None
+        min_distance = float("inf")
+        for point in zone_points:
+            zone_x, zone_y, zone_z, _ = point  # Ignore weight in this comparison
+            distance = np.sqrt(
+                (zone_x - x) ** 2 + (zone_y - y) ** 2 + (zone_z - z) ** 2
+            )
+            if distance < min_distance:
+                min_distance = distance
+                nearest_zone = point
+        return nearest_zone
+
+    def generate_zone_points(self, area, number=6):
+        """
+        Generate a random number of zone points for the mineral map.
+        """
+        zone_points = []
+        for i in range(number):
+            x = self.zone_points = np.random.randint(1, area)
+            y = self.zone_points = np.random.randint(1, area)
+            z = self.zone_points = np.random.randint(1, area)
+            weight = np.random.rand(0.1, 1)
+            zone_points.append((x, y, z, weight))
+        print(zone_points)
+
+        return self.zone_points
