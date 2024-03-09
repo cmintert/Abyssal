@@ -666,6 +666,18 @@ class PlotGenerator:
         return trace_asteroid_belts
 
     def trace_nations(self):
+        # Initially, create a dictionary mapping each star to its nation name
+        star_to_nation = {}
+        for nation in self.starmap.nations:
+            for star in nation.nation_stars:
+                star_to_nation[star] = nation.name  # Map star to nation name
+
+        # Generate hover text for each star, defaulting to 'Unknown' if the star isn't in the dictionary
+        hovertext = [
+            star_to_nation.get(star, 'Unknown') for star in self.starmap.stars
+        ]
+
+        # Create the Scatter3d trace
         trace_nations = go.Scatter3d(
             x=[star.x for star in self.starmap.stars],
             y=[star.y for star in self.starmap.stars],
@@ -675,19 +687,16 @@ class PlotGenerator:
                 size=30,
                 color=[
                     next(
-                        (
-                            nation.nation_colour
-                            for nation in self.starmap.nations
-                            if star in nation.nation_stars
-                        ),
-                        "white",
+                        (nation.nation_colour for nation in self.starmap.nations if star in nation.nation_stars),
+                        "white",  # Default color if no nation is found for the star
                     )
                     for star in self.starmap.stars
-                ],  # set color to the color of the nation the star is assigned to
+                ],
                 opacity=0.2,
             ),
+            hovertext=hovertext,  # Use the list of nation names corresponding to each star
             name="Nations",
-            hoverinfo="none",
+            hoverinfo="text",
         )
         return trace_nations
 
