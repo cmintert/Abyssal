@@ -1,10 +1,13 @@
 import pytest
 from Map_Components import Planetary_System, Star
 
+
 class TestPlanetarySystem:
     @pytest.fixture(autouse=True)
     def setup(self):
-        self.star = Star(id=1, name="Sun", x=0, y=0, z=0, spectral_class="G-Type", luminosity=1)
+        self.star = Star(
+            id=1, name="Sun", x=0, y=0, z=0, spectral_class="G-Type", luminosity=1
+        )
         self.system = Planetary_System(star=self.star)
 
     def test_generate_orbits(self):

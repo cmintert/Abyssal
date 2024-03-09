@@ -3,8 +3,9 @@ import plotly.graph_objects as go
 import json
 
 from plotly.offline import plot
-from Map_Components import Nation, Star, Planetary_System
-from Utility import scale_values_to_range, insert_linebreaks
+from Map_Components import Nation, Star, Planetary_System, MineralMap
+from Utility import scale_values_to_range, insert_linebreaks, RareMinerals
+
 
 # Generate stars
 class Starmap:
@@ -22,13 +23,14 @@ class Starmap:
         }
         self.used_star_names = []
         self.plot_generator = PlotGenerator(self)
+        self.mineral_maps = {}
 
     def write_stars_to_JSON(self):
         star_data = []
         for star in self.stars:
             star_data.append(star.serialize_star_to_dict())
 
-        with open("star_data.json","w") as file:
+        with open("star_data.json", "w") as file:
             json.dump(star_data, file, indent=4)
 
     def write_nations_to_JSON(self):
@@ -36,15 +38,17 @@ class Starmap:
         for nation in self.nations:
             nation_data.append(nation.serialize_nation_to_dict())
 
-        with open("nation_data.json","w") as file:
+        with open("nation_data.json", "w") as file:
             json.dump(nation_data, file, indent=4)
 
     def write_planetary_systems_to_JSON(self):
         planetary_system_data = []
         for star in self.stars:
-            planetary_system_data.append(star.planetary_system.serialize_planetary_system_to_dict())
+            planetary_system_data.append(
+                star.planetary_system.serialize_planetary_system_to_dict()
+            )
 
-        with open("planetary_system_data.json","w") as file:
+        with open("planetary_system_data.json", "w") as file:
             json.dump(planetary_system_data, file, indent=4)
 
     def write_planets_to_JSON(self):
@@ -54,7 +58,7 @@ class Starmap:
                 if planet.body_type == "Planet":
                     planet_data.append(planet.serialize_planet_to_dict())
 
-        with open("planet_data.json","w") as file:
+        with open("planet_data.json", "w") as file:
             json.dump(planet_data, file, indent=4)
 
     def write_asteroid_belts_to_JSON(self):
@@ -64,10 +68,22 @@ class Starmap:
                 if belt.body_type == "Asteroid Belt":
                     asteroid_belt_data.append(belt.serialize_asteroid_belt_to_dict())
 
-        with open("asteroid_belt_data.json","w") as file:
+        with open("asteroid_belt_data.json", "w") as file:
             json.dump(asteroid_belt_data, file, indent=4)
 
+    def generate_mineral_maps(self, area=500, number=6):
+        rare_minerals = RareMinerals()
+        list_of_minerals = rare_minerals.get_minerals()
+        for mineral in list_of_minerals:
+            mineral_map = MineralMap(mineral)
+            mineral_map.zone_points = mineral_map.generate_zone_points(
+                mineral, area, number
+            )
+            self.mineral_maps[mineral] = mineral_map
+
     def generate_star_systems(self, number_of_stars=500, map_radius=500):
+
+        self.generate_mineral_maps(number=10)
 
         for id in range(number_of_stars):
             phi, r, theta = self.random_spherical_coordinate(map_radius)
@@ -527,7 +543,7 @@ class PlotGenerator:
         all_orbits = [
             planet.orbit
             for star in self.starmap.stars
-                for planet in star.planetary_system.celestial_bodies
+            for planet in star.planetary_system.celestial_bodies
         ]
         normalized_orbits = scale_values_to_range(all_orbits, 1, 17)
 
@@ -535,21 +551,19 @@ class PlotGenerator:
         for star in self.starmap.stars:
             for planet in star.planetary_system.celestial_bodies:
                 # Use the normalized orbit as the offset
-                print("Now plotting planet", planet.name, " in system: ", star.name[0], " in orbit: ", planet.orbit)
                 offset = normalized_orbits[orbit_index]
                 orbit_index += 1
 
                 # gather additional info
                 additional_info = planet.additional_info
                 if additional_info is not None:
-                    additional_info = insert_linebreaks(additional_info, max_line_length=50)
-                print("Additional info: ", additional_info)
+                    additional_info = insert_linebreaks(
+                        additional_info, max_line_length=50
+                    )
                 planet_additional_info.append(additional_info)
 
                 if planet.body_type == "Planet":
                     planet_color = "green" if planet.habitable else "lightgrey"
-                    print("The habitability marker color is: ", planet_color)
-
 
                 # Add the planet dot position and color
                 angle = np.random.uniform(
@@ -578,7 +592,10 @@ class PlotGenerator:
                 size=scale_values_to_range(planet_mass, 7, 12),  # Adjust size as needed
                 color=planet_colors,  # Color based on habitability
             ),
-            text=[f'{name}: {info}' for name, info in zip(planet_names, planet_additional_info)],
+            text=[
+                f"{name}: {info}"
+                for name, info in zip(planet_names, planet_additional_info)
+            ],
             name="trace_planets",
             hoverinfo="text",
         )
@@ -624,7 +641,16 @@ class PlotGenerator:
                         asteroid_belt_x.append(star.x + offset * np.cos(angle))
                         asteroid_belt_y.append(star.y + offset * np.sin(angle))
                         asteroid_belt_z.append(star.z)
-                        hover_texts.append(belt.name)  # Placeholder text
+
+                        # Add the mineral composition to the hover_texts
+                        mineral_composition = "Mineral Composition: <br>"
+                        for mineral in belt.minerals:
+                            for key, value in mineral.items():
+                                mineral_composition += f"{key}: {value} %<br>"
+
+                        hover_texts.append(
+                            f'{belt.name}<br><br>The belt density is "{belt.density}"<br><br>{mineral_composition}'
+                        )
 
         # Create trace for the planetary dots
         trace_asteroid_belts = go.Scatter3d(
@@ -632,9 +658,9 @@ class PlotGenerator:
             y=asteroid_belt_y,
             z=asteroid_belt_z,
             mode="markers",
-            marker=dict(size=1, color="white"),  # Adjust size as needed
+            marker=dict(size=1, color="grey"),  # Adjust size as needed
             text=hover_texts,
-            name="trace_asteroid_belts",
+            name="Asteroid Belts",
             hoverinfo="text",
         )
         return trace_asteroid_belts
@@ -747,8 +773,9 @@ expansion_rate_set = [0.7, 0.8, 1, 1, 0.9]
 
 np.random.seed(50)
 
+
 actual_map = Starmap()
-actual_map.generate_star_systems(number_of_stars=100)
+actual_map.generate_star_systems(number_of_stars=521)
 actual_map.generate_nations(
     name_set=name_set,
     nation_colour_set=colour_set,

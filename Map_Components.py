@@ -1,6 +1,6 @@
 import math
 import numpy as np
-from Utility import StarNames, PlanetNames
+from Utility import StarNames, PlanetNames, RareMinerals
 import openai
 import os
 from openai import OpenAI
@@ -297,6 +297,9 @@ class Star:
                 math.sqrt(self.luminosity) * 1.37,
             ]
         raise ValueError("Luminosity not set.")
+
+    def get_xyz_position(self):
+        return self.x, self.y, self.z
 
     def __str__(self):
         return f"Star ID: {self.id}, Cartesian: ({self.x}, {self.y}, {self.z}), Spherical: (r={self.r}, theta={self.theta}, phi={self.phi})"
@@ -818,13 +821,15 @@ class AsteroidBelt(SmallBody):
     def __init__(self, star, name=None, **kwargs):
         super().__init__(name, star, **kwargs)
         self.density = None
+        self.minerals = None
 
     def __str__(self):
-        return f"{self.star.name[0]}:  {self.name}: {self.body_type} at {self.orbit:.2f} AU, Density: {self.density}"
+        return f"{self.star.name[0]}:  {self.name}: {self.body_type} at {self.orbit:.2f} AU, Density: {self.density}, Minerals: {self.minerals}"
 
     def serialize_asteroid_belt_to_dict(self):
         data = super().serialize_small_body_to_dict()
         data.update({"density": self.density})
+        data.update({"minerals": self.minerals})
         return data
 
     def generate_asteroid_belt(self, orbit, star):
@@ -838,7 +843,7 @@ class AsteroidBelt(SmallBody):
         self.name = f"Asteroid Belt {self.return_orbit_number()}"
         self.body_type = "Asteroid Belt"
         self.density = self.generate_density()
-
+        self.minerals = self.generate_minerals()
         # Calculate the density of the asteroid belt
         # self.additional_info = self.generate_density()
 
@@ -858,6 +863,68 @@ class AsteroidBelt(SmallBody):
             density = "Dense"
 
         return density
+
+    def generate_minerals(self):
+        # generate a list of available minerals in the asteroid belt with their abundance in percentage
+        # using the RareMineral class from Utility.py to generate the minerals and the MineralMap Class to generate the abundance
+
+        rare_minerals = RareMinerals()
+        belt_minerals = []
+        list_of_minerals_to_assign = rare_minerals.get_minerals()
+        stellar_position_of_belt = self.star.get_xyz_position()
+
+        # Zones for all the minerals
+        scarcity_map = self.star.star_map.mineral_maps
+
+        # generate the abundance of each mineral in the asteroid belt
+        for mineral in list_of_minerals_to_assign:
+            actual_mineral_map = scarcity_map[mineral]
+            abundance = RareMinerals.properties[mineral]["rarity"]
+
+            if self.orbit > 1.2 and mineral == "Rock":
+                abundance = abundance * 0.2
+            if self.orbit <= 1.2 and mineral == "Water":
+                abundance = abundance * 0.2
+
+            # I have to access the nearest zone point in the map for the mineral
+            # So I have to chose the correct mineral map from the scarcity_map
+            # Then I have to find the nearest point to the belt position
+
+            mineral_scarcity_zones = actual_mineral_map.find_nearest_zone_point(
+                stellar_position_of_belt
+            )
+
+            # Out of scarcity zone I have to access the scarcity value, the last in the list
+            scarcity = mineral_scarcity_zones[-1]
+            final_abundance = abundance * scarcity * np.random.uniform(0.8, 1.2)
+            belt_minerals.append({mineral: final_abundance})
+
+            print(
+                f"{mineral} is found in the asteroid belt with an abundance of {final_abundance}"
+            )
+
+        # sum up all the abundances
+
+        sum_of_abundances = 0
+        for mineral in belt_minerals:
+            sum_of_abundances += sum(mineral.values())
+        print(sum_of_abundances)
+
+        correction_factor = 100 / sum_of_abundances
+        for mineral in belt_minerals:
+            for key in mineral:
+                mineral[key] = round(mineral[key] * correction_factor, 4)
+
+        # sum up all the abundances again
+
+        sum_of_abundances = 0
+        for mineral in belt_minerals:
+            sum_of_abundances += sum(mineral.values())
+        print(sum_of_abundances)
+
+        print(belt_minerals)
+
+        return belt_minerals
 
 
 class Planetary_System:
@@ -1019,47 +1086,73 @@ class Planetary_System:
 
 class MineralMap:
 
-    def __init__(self, mineral, zone_points):
+    def __init__(self, mineral=None, zone_points=None):
 
         self.mineral = mineral
         self.zone_points = zone_points
 
-    # create an influence map for the mineral based on zone points
-    def create_influence_map(self, area, zone_points):
-        """
-        Create an influence map for the mineral based on zone points.
-        """
-        influence_map = np.zeros((area, area, area))
-        for point in zone_points:
-            x, y, z, weight = point
-            influence_map[x, y, z] = weight
-        return influence_map
+    def __str__(self):
 
-    def find_nearest_zone_point(space_point, zone_points):
+        text = f"{self.mineral} map with {len(self.zone_points)} zone points."
+        text += f" The zone points are: {self.zone_points}"
+
+        return text
+
+    def find_nearest_zone_point(self, space_point):
         x, y, z = space_point  # Unpack the coordinates of the given point
         nearest_zone = None
         min_distance = float("inf")
-        for point in zone_points:
-            zone_x, zone_y, zone_z, _ = point  # Ignore weight in this comparison
-            distance = np.sqrt(
-                (zone_x - x) ** 2 + (zone_y - y) ** 2 + (zone_z - z) ** 2
+        for point in self.zone_points:
+            zone_x, zone_y, zone_z, weight, scarcity = (
+                point  # Ignore weight in this comparison
+            )
+
+            if weight <= 0:
+                continue
+
+            distance = (
+                np.sqrt((zone_x - x) ** 2 + (zone_y - y) ** 2 + (zone_z - z) ** 2)
+                / weight
             )
             if distance < min_distance:
                 min_distance = distance
                 nearest_zone = point
         return nearest_zone
 
-    def generate_zone_points(self, area, number=6):
+    def generate_zone_points(self, mineral, area=500, number=6):
         """
         Generate a random number of zone points for the mineral map.
         """
         zone_points = []
         for i in range(number):
-            x = self.zone_points = np.random.randint(1, area)
-            y = self.zone_points = np.random.randint(1, area)
-            z = self.zone_points = np.random.randint(1, area)
-            weight = np.random.rand(0.1, 1)
-            zone_points.append((x, y, z, weight))
-        print(zone_points)
+            x = np.random.randint(-area, area)
+            y = np.random.randint(-area, area)
+            z = np.random.randint(-area, area)
+            weight = np.random.uniform(0.1, 1)
 
-        return self.zone_points
+            if mineral == "Rock" or mineral == "WaterIce":
+                mineral_scarcity = np.random.uniform(0.8, 1.2)
+                print("+++", mineral, mineral_scarcity)
+            else:
+                mineral_scarcity = np.random.uniform(0, 1.3)
+                print("---", mineral, mineral_scarcity)
+
+            zone_points.append((x, y, z, weight, mineral_scarcity))
+
+        return zone_points
+
+    def create_maps_for_all_minerals(self, area=500, number=6):
+        """
+        Create mineral maps for a list of minerals and store them in a dictionary.
+        """
+        minerals = RareMinerals().get_minerals()
+        mineral_maps = {}  # Use a dictionary to store mineral maps
+
+        for mineral in minerals:
+            zone_points = self.generate_zone_points(mineral, area, number)
+            mineral_map = MineralMap(mineral, zone_points)
+            mineral_maps[mineral] = (
+                mineral_map  # Store the map with the mineral name as the key
+            )
+
+        return mineral_maps

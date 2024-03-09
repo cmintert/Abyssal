@@ -218,9 +218,14 @@ class PlanetNames:
 class RareMinerals:
     properties = {
         "WaterIce": {
-            "rarity": 0.8,
+            "rarity": 3,
             "value": 100,
             "description": "Vital for life support and fuel in space.",
+        },
+        "Rock": {
+            "rarity": 3,
+            "value": 50,
+            "description": "Used in construction and as a raw material.",
         },
         "Platinum": {
             "rarity": 0.05,
@@ -297,15 +302,41 @@ class RareMinerals:
             "value": 500,
             "description": "Essential for agriculture and biochemical processes.",
         },
+        "Iron": {
+            "rarity": 0.6,
+            "value": 300,
+            "description": "Used in construction, vehicles, and steel.",
+        },
+        "Silicon": {
+            "rarity": 0.4,
+            "value": 450,
+            "description": "Critical for electronics, solar panels, and glass.",
+        },
         # Add more as needed
     }
+
+    def get_minerals(self):
+        """Returns a list of all available minerals."""
+        return list(self.properties.keys())
 
     @staticmethod
     def get_mineral_info(mineral_name):
         """Returns the properties of the requested mineral."""
         return RareMinerals.properties.get(mineral_name, None)
 
-    def get_random_mineral(self):
-        """Returns a random mineral and its properties."""
-        mineral_name = np.random.choice(list(self.properties.keys()))
-        return mineral_name
+    def get_random_mineral(self, number_of_minerals=1):
+        """Returns a list of unique random minerals and their properties."""
+        all_mineral_names = list(self.properties.keys())
+        number_of_minerals = min(
+            number_of_minerals, len(all_mineral_names)
+        )  # Ensure request does not exceed available minerals
+
+        selected_mineral_names = np.random.choice(
+            all_mineral_names, size=number_of_minerals, replace=False
+        )
+        random_minerals = [
+            (mineral_name, self.properties[mineral_name])
+            for mineral_name in selected_mineral_names
+        ]
+
+        return random_minerals
