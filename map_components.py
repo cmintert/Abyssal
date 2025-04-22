@@ -1,9 +1,8 @@
 import math
 import numpy as np
+from numpy import random
+
 from Utility import StarNames, PlanetNames, RareMinerals
-import openai
-import os
-from openai import OpenAI
 
 SPECTRAL_CLASSES_LUM_MASS_RATIO = {
     "G-Type": 1 / 4,
@@ -187,6 +186,7 @@ class Star:
         id,
         starmap,
         name=None,
+        nation=None,
         x=None,
         y=None,
         z=None,
@@ -201,6 +201,7 @@ class Star:
         self.star_map = starmap
         if name is None:
             self.name = self.generate_star_name()
+        self.nation = nation
         self.additional_info = None
         # Cartesian coordinates
         self.x = x
@@ -232,6 +233,7 @@ class Star:
         data = {
             "id": self.id,
             "name": self.name,
+            "nation": self.nation.name,
             "x": self.x,
             "y": self.y,
             "z": self.z,

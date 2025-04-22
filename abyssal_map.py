@@ -469,6 +469,7 @@ class Starmap:
                     closest_nation = nation
                     min_weighted_distance = weighted_distance
             closest_nation.nation_stars.append(star)
+            star.nation = closest_nation
 
     def get_luminosities(self):
         """
@@ -792,6 +793,7 @@ class PlotGenerator:
                     )
                 planet_additional_info.append(additional_info)
 
+                planet_color = "lightgrey"  # Default color for all celestial bodies
                 if planet.body_type == "Planet":
                     planet_color = "green" if planet.habitable else "lightgrey"
 
@@ -805,11 +807,11 @@ class PlotGenerator:
 
                 if planet.body_type == "Planet":
                     planet_mass.append(planet.mass)
+
                 else:
                     planet_mass.append(0)
 
                 planet_colors.append(planet_color)
-
                 planet_names.append(planet.name)
 
         # Create trace for the planetary dots

@@ -134,6 +134,10 @@ def update_figure(selected_nation_idx, n_clicks, current_fig):
         which helps users focus on specific areas of interest in the map while
         maintaining the overall context of the universe.
     """
+    # Defensive check
+    if selected_nation_idx is None:
+        selected_nation_idx = 0
+
     # Create a new figure based on the selected nation
     if selected_nation_idx == 0:  # "All Nations"
         return plot_generator.plot(html=False, return_fig=True)
