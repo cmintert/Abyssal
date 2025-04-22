@@ -334,7 +334,7 @@ class PlotGenerator:
     def __init__(self, starmap):
         self.starmap = starmap
 
-    def plot(self):
+    def plot(self, html=True, return_fig=False):
 
         masses = self.starmap.get_normalized_masses()
         masses = scale_values_to_range(masses, 8, 12)
@@ -362,7 +362,7 @@ class PlotGenerator:
         # Create trace for the planetary system
         trace_planetary_system = self.trace_planetary_system()
 
-        self.create_figure(
+        return self.create_figure(
             layout,
             trace_nations,
             trace_planets,
@@ -370,7 +370,8 @@ class PlotGenerator:
             trace_planets_orbits,
             trace_asteroid_belts,
             trace_planetary_system,
-            html=True,
+            html=html,
+            return_fig=return_fig,
         )
 
     def create_figure(
@@ -383,6 +384,7 @@ class PlotGenerator:
         trace_asteroid_belts,
         trace_planetary_system,
         html=True,
+        return_fig=False,
     ):
         data = [
             trace_stars,
@@ -393,6 +395,8 @@ class PlotGenerator:
             trace_planetary_system,
         ]
         fig = go.Figure(data=data, layout=layout)
+        if return_fig:
+            return fig
         if html:
             plot(fig, filename="Abyssal_showcase.html", output_type="file")
         fig.show()
