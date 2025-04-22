@@ -26,7 +26,7 @@ app = dash.Dash(
 server = app.server
 
 # Set the seed for reproducibility
-np.random.seed = config.SEED
+np.random.seed(config.SEED)
 
 # Nation data
 ALL_NATIONS_ENTRY = "All Nations"
