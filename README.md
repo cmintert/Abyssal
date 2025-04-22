@@ -93,7 +93,7 @@ A Dash web application providing an interactive interface for the star map.
 To generate a new star map:
 
 ```python
-from Abyssal_map import Starmap
+from abyssal_map import Starmap
 
 # Create a new starmap
 my_map = Starmap()

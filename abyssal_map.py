@@ -3,7 +3,7 @@ import plotly.graph_objects as go
 import json
 
 from plotly.offline import plot
-from Map_Components import Nation, Star, Planetary_System, MineralMap
+from map_components import Nation, Star, Planetary_System, MineralMap
 from Utility import scale_values_to_range, insert_linebreaks, RareMinerals
 
 import config
@@ -995,19 +995,3 @@ class PlotGenerator:
             ),
         )
         return trace_planetary_system
-
-
-np.random.seed(50)
-
-actual_map = Starmap()
-actual_map.generate_star_systems(number_of_stars=config.DEFAULT_NUM_STARS)
-actual_map.generate_nations(
-    name_set=config.DEFAULT_NATIONS,
-    nation_colour_set=config.DEFAULT_NATION_COLORS,
-    origin_set=config.DEFAULT_NATION_ORIGINS,
-    expansion_rate_set=config.DEFAULT_EXPANSION_RATES,
-)
-actual_map.assign_stars_to_nations()
-
-actual_map.write_all_to_json()
-actual_map.plot()

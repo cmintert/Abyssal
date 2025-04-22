@@ -1,5 +1,5 @@
 import pytest
-from Map_Components import Planetary_System, Star
+from map_components import Planetary_System, Star
 
 
 class TestPlanetarySystem:
