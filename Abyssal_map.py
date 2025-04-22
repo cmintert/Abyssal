@@ -6,6 +6,8 @@ from plotly.offline import plot
 from Map_Components import Nation, Star, Planetary_System, MineralMap
 from Utility import scale_values_to_range, insert_linebreaks, RareMinerals
 
+import config
+
 
 # Generate stars
 class Starmap:
@@ -337,7 +339,9 @@ class PlotGenerator:
     def plot(self, html=True, return_fig=False):
 
         masses = self.starmap.get_normalized_masses()
-        masses = scale_values_to_range(masses, 8, 12)
+        masses = scale_values_to_range(
+            masses, config.STAR_SIZE_RANGE[0], config.STAR_SIZE_RANGE[1]
+        )
 
         luminosities = self.starmap.get_normalized_luminosities()
 
@@ -517,8 +521,8 @@ class PlotGenerator:
             y=orbit_y,
             z=orbit_z,
             mode="lines, text",
-            line=dict(color="grey", width=1),
-            opacity=0.7,
+            line=dict(color=config.ORBIT_COLOR, width=config.ORBIT_LINE_WIDTH),
+            opacity=config.ORBIT_OPACITY,
             name="trace_planets_orbits",
             hoverinfo="text",
         )
@@ -593,7 +597,13 @@ class PlotGenerator:
             z=planet_z,
             mode="markers",
             marker=dict(
-                size=scale_values_to_range(planet_mass, 7, 12),  # Adjust size as needed
+                size=scale_values_to_range(
+                    planet_mass,
+                    config.PLANET_SIZE_RANGE[0],
+                    config.PLANET_SIZE_RANGE[1],
+                ),
+                # Adjust
+                # size as needed
                 color=planet_colors,  # Color based on habitability
             ),
             text=[
@@ -677,9 +687,7 @@ class PlotGenerator:
                 star_to_nation[star] = nation.name  # Map star to nation name
 
         # Generate hover text for each star, defaulting to 'Unknown' if the star isn't in the dictionary
-        hovertext = [
-            star_to_nation.get(star, 'Unknown') for star in self.starmap.stars
-        ]
+        hovertext = [star_to_nation.get(star, "Unknown") for star in self.starmap.stars]
 
         # Create the Scatter3d trace
         trace_nations = go.Scatter3d(
@@ -691,7 +699,11 @@ class PlotGenerator:
                 size=30,
                 color=[
                     next(
-                        (nation.nation_colour for nation in self.starmap.nations if star in nation.nation_stars),
+                        (
+                            nation.nation_colour
+                            for nation in self.starmap.nations
+                            if star in nation.nation_stars
+                        ),
                         "white",  # Default color if no nation is found for the star
                     )
                     for star in self.starmap.stars
@@ -761,39 +773,15 @@ class PlotGenerator:
         return trace_planetary_system
 
 
-name_set = [
-    "Haven",
-    "New Frontier Alliance",
-    "Sol Protectorate",
-    "United Stellar Colonies",
-    "Void Confederacy",
-]
-colour_set = [
-    (0.5, 0.5, 0.5),
-    (0.2, 0.8, 0.2),
-    (0.8, 0.2, 0.2),
-    (0.2, 0.2, 0.8),
-    (0.8, 0.8, 0.2),
-]
-origin_set = [
-    {"x": -200, "y": 100, "z": -100},
-    {"x": -50, "y": 100, "z": 90},
-    {"x": 0, "y": 0, "z": 0},
-    {"x": 50, "y": 50, "z": 20},
-    {"x": 100, "y": 100, "z": -50},
-]
-expansion_rate_set = [0.7, 0.8, 1, 1, 0.9]
-
 np.random.seed(50)
 
-
 actual_map = Starmap()
-actual_map.generate_star_systems(number_of_stars=521)
+actual_map.generate_star_systems(number_of_stars=config.DEFAULT_NUM_STARS)
 actual_map.generate_nations(
-    name_set=name_set,
-    nation_colour_set=colour_set,
-    origin_set=origin_set,
-    expansion_rate_set=expansion_rate_set,
+    name_set=config.DEFAULT_NATIONS,
+    nation_colour_set=config.DEFAULT_NATION_COLORS,
+    origin_set=config.DEFAULT_NATION_ORIGINS,
+    expansion_rate_set=config.DEFAULT_EXPANSION_RATES,
 )
 actual_map.assign_stars_to_nations()
 actual_map.plot()

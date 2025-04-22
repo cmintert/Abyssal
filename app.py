@@ -2,6 +2,7 @@ import dash
 from dash import dcc, html
 from dash.dependencies import Input, Output, State
 
+import config
 from Abyssal_map import Starmap, PlotGenerator
 
 # Initialize the Dash app
@@ -10,38 +11,19 @@ app = dash.Dash(__name__,
 server = app.server
 
 # Nation data
-NATIONS = [
-    "All Nations",
-    "Haven",
-    "New Frontier Alliance",
-    "Sol Protectorate",
-    "United Stellar Colonies",
-    "Void Confederacy",
-]
+ALL_NATIONS_ENTRY = "All Nations"
+NATIONS = [ALL_NATIONS_ENTRY] + config.DEFAULT_NATIONS
 
-NATION_COLORS = [
-    None,  # All nations
-    (0.5, 0.5, 0.5),
-    (0.2, 0.8, 0.2),
-    (0.8, 0.2, 0.2),
-    (0.2, 0.2, 0.8),
-    (0.8, 0.8, 0.2),
-]
+NATION_COLORS = [None] + config.DEFAULT_NATION_COLORS
 
 # Create the starmap (do this once at startup)
 starmap = Starmap()
-starmap.generate_star_systems(number_of_stars=521)
+starmap.generate_star_systems(number_of_stars= config.DEFAULT_NUM_STARS,)
 starmap.generate_nations(
-    name_set=NATIONS[1:],  # Skip "All Nations"
-    nation_colour_set=NATION_COLORS[1:],  # Skip None
-    origin_set=[
-        {"x": -200, "y": 100, "z": -100},
-        {"x": -50, "y": 100, "z": 90},
-        {"x": 0, "y": 0, "z": 0},
-        {"x": 50, "y": 50, "z": 20},
-        {"x": 100, "y": 100, "z": -50},
-    ],
-    expansion_rate_set=[0.7, 0.8, 1, 1, 0.9]
+    name_set=config.DEFAULT_NATIONS,  # Skip "All Nations"
+    nation_colour_set=config.DEFAULT_NATION_COLORS,  # Skip None
+    origin_set=config.DEFAULT_NATION_ORIGINS,
+    expansion_rate_set=config.DEFAULT_EXPANSION_RATES,
 )
 starmap.assign_stars_to_nations()
 plot_generator = PlotGenerator(starmap)
