@@ -233,7 +233,7 @@ class Star:
         data = {
             "id": self.id,
             "name": self.name,
-            "nation": self.nation.name,
+            "nation": self.nation.name if self.nation else None,
             "x": self.x,
             "y": self.y,
             "z": self.z,
