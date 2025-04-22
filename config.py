@@ -1,6 +1,9 @@
 # config.py
 """Configuration settings for the Abyssal StellarMap."""
 
+# General settings
+SEED = 50
+
 # Star system generation
 DEFAULT_NUM_STARS = 521
 SPACE_BOUNDARY = 500

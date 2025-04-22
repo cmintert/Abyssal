@@ -1,9 +1,10 @@
 import dash
+import numpy as np
 from dash import dcc, html
 from dash.dependencies import Input, Output, State
 
 import config
-from Abyssal_map import Starmap, PlotGenerator
+from abyssal_map import Starmap, PlotGenerator
 
 """
 A Dash web application for visualizing an interactive 3D star map of the Abyssal universe.
@@ -24,10 +25,12 @@ app = dash.Dash(
 )
 server = app.server
 
+# Set the seed for reproducibility
+np.random.seed(config.SEED)
+
 # Nation data
 ALL_NATIONS_ENTRY = "All Nations"
 NATIONS = [ALL_NATIONS_ENTRY] + config.DEFAULT_NATIONS
-
 NATION_COLORS = [None] + config.DEFAULT_NATION_COLORS
 
 # Create the starmap (do this once at startup)
@@ -42,6 +45,9 @@ starmap.generate_nations(
     expansion_rate_set=config.DEFAULT_EXPANSION_RATES,
 )
 starmap.assign_stars_to_nations()
+
+starmap.write_all_to_json()
+
 plot_generator = PlotGenerator(starmap)
 
 # Define the app layout
@@ -128,6 +134,10 @@ def update_figure(selected_nation_idx, n_clicks, current_fig):
         which helps users focus on specific areas of interest in the map while
         maintaining the overall context of the universe.
     """
+    # Defensive check
+    if selected_nation_idx is None:
+        selected_nation_idx = 0
+
     # Create a new figure based on the selected nation
     if selected_nation_idx == 0:  # "All Nations"
         return plot_generator.plot(html=False, return_fig=True)
@@ -159,4 +169,4 @@ def update_figure(selected_nation_idx, n_clicks, current_fig):
 
 # Run the app
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    app.run(debug=True)

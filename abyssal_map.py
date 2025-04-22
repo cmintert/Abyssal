@@ -3,7 +3,7 @@ import plotly.graph_objects as go
 import json
 
 from plotly.offline import plot
-from Map_Components import Nation, Star, Planetary_System, MineralMap
+from map_components import Nation, Star, Planetary_System, MineralMap
 from Utility import scale_values_to_range, insert_linebreaks, RareMinerals
 
 import config
@@ -469,6 +469,7 @@ class Starmap:
                     closest_nation = nation
                     min_weighted_distance = weighted_distance
             closest_nation.nation_stars.append(star)
+            star.nation = closest_nation
 
     def get_luminosities(self):
         """
@@ -792,6 +793,7 @@ class PlotGenerator:
                     )
                 planet_additional_info.append(additional_info)
 
+                planet_color = "lightgrey"  # Default color for all celestial bodies
                 if planet.body_type == "Planet":
                     planet_color = "green" if planet.habitable else "lightgrey"
 
@@ -805,11 +807,11 @@ class PlotGenerator:
 
                 if planet.body_type == "Planet":
                     planet_mass.append(planet.mass)
+
                 else:
                     planet_mass.append(0)
 
                 planet_colors.append(planet_color)
-
                 planet_names.append(planet.name)
 
         # Create trace for the planetary dots
@@ -995,19 +997,3 @@ class PlotGenerator:
             ),
         )
         return trace_planetary_system
-
-
-np.random.seed(50)
-
-actual_map = Starmap()
-actual_map.generate_star_systems(number_of_stars=config.DEFAULT_NUM_STARS)
-actual_map.generate_nations(
-    name_set=config.DEFAULT_NATIONS,
-    nation_colour_set=config.DEFAULT_NATION_COLORS,
-    origin_set=config.DEFAULT_NATION_ORIGINS,
-    expansion_rate_set=config.DEFAULT_EXPANSION_RATES,
-)
-actual_map.assign_stars_to_nations()
-
-actual_map.write_all_to_json()
-actual_map.plot()

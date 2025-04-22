@@ -1,9 +1,8 @@
 import math
 import numpy as np
+from numpy import random
+
 from Utility import StarNames, PlanetNames, RareMinerals
-import openai
-import os
-from openai import OpenAI
 
 SPECTRAL_CLASSES_LUM_MASS_RATIO = {
     "G-Type": 1 / 4,
@@ -187,6 +186,7 @@ class Star:
         id,
         starmap,
         name=None,
+        nation=None,
         x=None,
         y=None,
         z=None,
@@ -201,6 +201,7 @@ class Star:
         self.star_map = starmap
         if name is None:
             self.name = self.generate_star_name()
+        self.nation = nation
         self.additional_info = None
         # Cartesian coordinates
         self.x = x
@@ -232,6 +233,7 @@ class Star:
         data = {
             "id": self.id,
             "name": self.name,
+            "nation": self.nation.name if self.nation else None,
             "x": self.x,
             "y": self.y,
             "z": self.z,
@@ -899,16 +901,11 @@ class AsteroidBelt(SmallBody):
             final_abundance = abundance * scarcity * np.random.uniform(0.8, 1.2)
             belt_minerals.append({mineral: final_abundance})
 
-            print(
-                f"{mineral} is found in the asteroid belt with an abundance of {final_abundance}"
-            )
-
         # sum up all the abundances
 
         sum_of_abundances = 0
         for mineral in belt_minerals:
             sum_of_abundances += sum(mineral.values())
-        print(sum_of_abundances)
 
         correction_factor = 100 / sum_of_abundances
         for mineral in belt_minerals:
@@ -920,9 +917,6 @@ class AsteroidBelt(SmallBody):
         sum_of_abundances = 0
         for mineral in belt_minerals:
             sum_of_abundances += sum(mineral.values())
-        print(sum_of_abundances)
-
-        print(belt_minerals)
 
         return belt_minerals
 
@@ -1060,29 +1054,6 @@ class Planetary_System:
         }
         return data
 
-    def generate_description_gpt(data):
-
-        openai.OPENAI_API_KEY = os.getenv("OpenAI")
-
-        client = OpenAI()
-
-        # User input to proceed
-
-        input("Press Enter to continue...")
-
-        completion = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": "Hello!"},
-            ],
-        )
-
-        print(completion.choices[0].usage)
-        print("-------------------")
-        print(completion.choices[0].message)
-        return completion.choices[0].message
-
 
 class MineralMap:
 
@@ -1132,10 +1103,9 @@ class MineralMap:
 
             if mineral == "Rock" or mineral == "WaterIce":
                 mineral_scarcity = np.random.uniform(0.8, 1.2)
-                print("+++", mineral, mineral_scarcity)
+
             else:
                 mineral_scarcity = np.random.uniform(0, 1.3)
-                print("---", mineral, mineral_scarcity)
 
             zone_points.append((x, y, z, weight, mineral_scarcity))
 
