@@ -11,7 +11,25 @@ import config
 
 # Generate stars
 class Starmap:
+    """
+    A class to generate and manage a 3D map of star systems with their associated nations and planetary bodies.
+
+    This class serves as the main engine for creating a scientifically plausible star map for the Abyssal game universe.
+    It handles the generation of stars, planetary systems, and the political division of space into nations.
+
+    Attributes:
+        stars (list): List of Star objects in the map
+        nations (list): List of Nation objects controlling various regions
+        spectral_classes (dict): Mapping of star types to their luminosity ranges
+        used_star_names (list): Tracks used names to prevent duplicates
+        plot_generator (PlotGenerator): Handles visualization of the starmap
+        mineral_maps (dict): Maps of mineral distributions across space
+    """
+
     def __init__(self):
+        """
+        Initializes a new Starmap instance with empty collections and default settings.
+        """
         self.stars = []
         self.nations = []
         self.spectral_classes = {
@@ -27,53 +45,154 @@ class Starmap:
         self.plot_generator = PlotGenerator(self)
         self.mineral_maps = {}
 
-    def write_stars_to_JSON(self):
-        star_data = []
-        for star in self.stars:
-            star_data.append(star.serialize_star_to_dict())
+    @staticmethod
+    def write_to_json(data, filename):
+        """
+        Serializes and writes data to a JSON file.
 
-        with open("star_data.json", "w") as file:
-            json.dump(star_data, file, indent=4)
+        Args:
+            data: Data structure to serialize
+            filename (str): Target JSON file path
 
-    def write_nations_to_JSON(self):
-        nation_data = []
-        for nation in self.nations:
-            nation_data.append(nation.serialize_nation_to_dict())
+        Returns:
+            None
+        """
+        with open(filename, "w") as file:
+            json.dump(data, file, indent=4)
+        print(f"Data written to {filename}")
 
-        with open("nation_data.json", "w") as file:
-            json.dump(nation_data, file, indent=4)
+    def get_serialized_stars(self):
+        """
+        Returns a list of serialized star data.
 
-    def write_planetary_systems_to_JSON(self):
-        planetary_system_data = []
-        for star in self.stars:
-            planetary_system_data.append(
-                star.planetary_system.serialize_planetary_system_to_dict()
-            )
+        Returns:
+            list: Serialized star data
+        """
+        return [star.serialize_star_to_dict() for star in self.stars]
 
-        with open("planetary_system_data.json", "w") as file:
-            json.dump(planetary_system_data, file, indent=4)
+    def get_serialized_nations(self):
+        """
+        Returns a list of serialized nation data.
 
-    def write_planets_to_JSON(self):
-        planet_data = []
-        for star in self.stars:
-            for planet in star.planetary_system.celestial_bodies:
-                if planet.body_type == "Planet":
-                    planet_data.append(planet.serialize_planet_to_dict())
+        Returns:
+            list: Serialized nation data
+        """
+        return [nation.serialize_nation_to_dict() for nation in self.nations]
 
-        with open("planet_data.json", "w") as file:
-            json.dump(planet_data, file, indent=4)
+    def get_serialized_planetary_systems(self):
+        """
+        Returns a list of serialized planetary system data.
 
-    def write_asteroid_belts_to_JSON(self):
-        asteroid_belt_data = []
-        for star in self.stars:
-            for belt in star.planetary_system.celestial_bodies:
-                if belt.body_type == "Asteroid Belt":
-                    asteroid_belt_data.append(belt.serialize_asteroid_belt_to_dict())
+        Returns:
+            list: Serialized planetary system data
+        """
+        return [
+            star.planetary_system.serialize_planetary_system_to_dict()
+            for star in self.stars
+        ]
 
-        with open("asteroid_belt_data.json", "w") as file:
-            json.dump(asteroid_belt_data, file, indent=4)
+    def get_serialized_planets(self):
+        """
+        Returns a list of serialized planet data.
+
+        Returns:
+            list: Serialized planet data
+        """
+        return [
+            planet.serialize_planet_to_dict()
+            for star in self.stars
+            for planet in star.planetary_system.celestial_bodies
+            if planet.body_type == "Planet"
+        ]
+
+    def get_serialized_asteroid_belts(self):
+        """
+        Returns a list of serialized asteroid belt data.
+
+        Returns:
+            list: Serialized asteroid belt data
+        """
+        return [
+            belt.serialize_asteroid_belt_to_dict()
+            for star in self.stars
+            for belt in star.planetary_system.celestial_bodies
+            if belt.body_type == "Asteroid Belt"
+        ]
+
+    def write_stars_to_json(self):
+        """
+        Writes serialized star data to a JSON file.
+
+        Returns:
+            None
+        """
+        self.write_to_json(self.get_serialized_stars(), "json_data/star_data.json")
+
+    def write_nations_to_json(self):
+        """
+        Writes serialized nation data to a JSON file.
+
+        Returns:
+            None
+        """
+        self.write_to_json(self.get_serialized_nations(), "json_data/nation_data.json")
+
+    def write_planetary_systems_to_json(self):
+        """
+        Writes serialized planetary system data to a JSON file.
+
+        Returns:
+            None
+        """
+        self.write_to_json(
+            self.get_serialized_planetary_systems(),
+            "json_data/planetary_system_data.json",
+        )
+
+    def write_planets_to_json(self):
+        """
+        Writes serialized planet data to a JSON file.
+
+        Returns:
+            None
+        """
+        self.write_to_json(self.get_serialized_planets(), "json_data/planet_data.json")
+
+    def write_asteroid_belts_to_json(self):
+        """
+        Writes serialized asteroid belt data to a JSON file.
+
+        Returns:
+            None
+        """
+        self.write_to_json(
+            self.get_serialized_asteroid_belts(), "json_data/asteroid_belt_data.json"
+        )
+
+    def write_all_to_json(self):
+        """
+        Writes all data to JSON files.
+
+        Returns:
+            None
+        """
+        self.write_stars_to_json()
+        self.write_nations_to_json()
+        self.write_planetary_systems_to_json()
+        self.write_planets_to_json()
+        self.write_asteroid_belts_to_json()
 
     def generate_mineral_maps(self, area=500, number=6):
+        """
+        Generates mineral maps for rare minerals.
+
+        Args:
+            area (int): Area of the map
+            number (int): Number of mineral zones
+
+        Returns:
+            None
+        """
         rare_minerals = RareMinerals()
         list_of_minerals = rare_minerals.get_minerals()
         for mineral in list_of_minerals:
@@ -84,7 +203,16 @@ class Starmap:
             self.mineral_maps[mineral] = mineral_map
 
     def generate_star_systems(self, number_of_stars=500, map_radius=500):
+        """
+        Generates a complete star system including stars, planets, and asteroid belts.
 
+        Args:
+            number_of_stars (int): Number of stars to generate
+            map_radius (float): Radius of the spherical game space
+
+        Returns:
+            None
+        """
         self.generate_mineral_maps(number=10)
 
         for id in range(number_of_stars):
@@ -110,20 +238,26 @@ class Starmap:
 
             # add star to map
             (self.stars.append(current_star))
-        # Add noise to star locations
+
+        # Add noise and stretch to star locations after all stars are generated
+        # This distorts the star locations to create a more realistic distribution
         self.star_location_noise()
         self.star_location_stretch()
 
+    @staticmethod
     def generate_orbits_for_star(
-        self, current_star, number_of_orbits=3, include_habitable_zone=True
+        current_star, number_of_orbits=3, include_habitable_zone=True
     ):
         """
         Generates orbits for a given star in the starmap.
 
         Args:
-                current_star (Star): The star for which to generate orbits.
-                number_of_orbits (int, optional): The maximum number of orbits to generate. Defaults to 3.
-                include_habitable_zone (bool, optional): Whether to include a habitable zone in the generated orbits. Defaults to True.
+            current_star (Star): The star for which to generate orbits.
+            number_of_orbits (int, optional): The maximum number of orbits to generate. Defaults to 3.
+            include_habitable_zone (bool, optional): Whether to include a habitable zone in the generated orbits. Defaults to True.
+
+        Returns:
+            None
         """
         orbits_count = np.random.randint(1, number_of_orbits + 1)
         current_star.planetary_system.generate_orbits(
@@ -131,7 +265,20 @@ class Starmap:
         )
 
     def instance_star(self, id, luminosity, phi, r, spectral_class, theta):
-        # Set star properties
+        """
+        Creates a new Star instance.
+
+        Args:
+            id (int): Unique identifier for the star
+            luminosity (float): Luminosity of the star
+            phi (float): Spherical coordinate phi
+            r (float): Spherical coordinate r
+            spectral_class (str): Spectral class of the star
+            theta (float): Spherical coordinate theta
+
+        Returns:
+            Star: The created Star instance
+        """
         current_star = Star(
             id,
             starmap=self,
@@ -144,12 +291,28 @@ class Starmap:
         return current_star
 
     def random_luminosity(self, spectral_class):
-        # Create random luminosity
+        """
+        Generates a random luminosity for a given spectral class.
+
+        Args:
+            spectral_class (str): Spectral class of the star
+
+        Returns:
+            float: Random luminosity value
+        """
         luminosity = np.random.uniform(*self.spectral_classes[spectral_class])
         return luminosity
 
     def random_spectral_class(self, include_habitable_zone=True):
-        # Create random spectral class
+        """
+        Generates a random spectral class.
+
+        Args:
+            include_habitable_zone (bool): Whether to prioritize habitable spectral classes
+
+        Returns:
+            str: Random spectral class
+        """
         if include_habitable_zone:
             # choose only G K or M Type stars
             useable_spectral_classes = ["G-Type", "K-Type", "M-Type"]
@@ -168,8 +331,17 @@ class Starmap:
             )
         return spectral_class
 
-    def random_spherical_coordinate(self, map_radius):
-        # Generate random spherical coordinates
+    @staticmethod
+    def random_spherical_coordinate(map_radius):
+        """
+        Generates random spherical coordinates.
+
+        Args:
+            map_radius (float): Radius of the spherical space
+
+        Returns:
+            tuple: Spherical coordinates (phi, r, theta)
+        """
         r = map_radius * (np.random.uniform(0, 1) ** (1 / 3))
         theta = 2 * np.random.uniform(0, 1) * np.pi
         phi = np.arccos(2 * np.random.uniform(0, 1) - 1)
@@ -179,11 +351,11 @@ class Starmap:
         """
         Adds noise to the location of each star in the starmap.
 
-        This method iterates over each star in the starmap and adds a random offset to the x, y, and z coordinates of the star.
-        The offset is a random float between -noise and noise.
-
         Args:
             noise (int, optional): The maximum absolute value of the offset to be added to the star's location. Defaults to 10.
+
+        Returns:
+            None
         """
         for star in self.stars:
             star.x += np.random.uniform(-noise, noise)
@@ -200,6 +372,9 @@ class Starmap:
             stretch_x (float, optional): The factor by which to stretch the x-coordinate of each star's location. Defaults to 1.
             stretch_y (float, optional): The factor by which to stretch the y-coordinate of each star's location. Defaults to 1.
             stretch_z (float, optional): The factor by which to stretch the z-coordinate of each star's location. Defaults to 0.6.
+
+        Returns:
+            None
         """
         for star in self.stars:
             star.x *= stretch_x
@@ -215,7 +390,20 @@ class Starmap:
         origin_set=None,
         expansion_rate_set=None,
     ):
+        """
+        Creates political entities (nations) that control regions of space.
 
+        Args:
+            n (int): Number of nations to generate if name_set is None
+            space_boundary (float): Maximum coordinate value for nation origins
+            name_set (list, optional): Predefined nation names
+            nation_colour_set (list, optional): Colors for nation visualization
+            origin_set (list, optional): Starting coordinates for each nation
+            expansion_rate_set (list, optional): Growth rates for each nation
+
+        Returns:
+            None
+        """
         if name_set is not None:
             for name in name_set:
                 new_nation = Nation(name=name, space_boundary=space_boundary)
@@ -239,11 +427,10 @@ class Starmap:
             for i in range(len(self.nations)):
                 self.nations[i].origin = origin_set[i]
 
-        if origin_set is not None:
-            if len(self.nations) > len(origin_set):
-                print(
-                    "Not enough origins for all nations, using random origins for the rest."
-                )
+        if origin_set is not None and len(self.nations) > len(origin_set):
+            print(
+                "Not enough origins for all nations, using random origins for the rest."
+            )
 
         if expansion_rate_set is not None:
             for i in range(len(self.nations)):
@@ -256,6 +443,13 @@ class Starmap:
                 )
 
     def assign_stars_to_nations(self):
+        """
+        Assigns stars to nations based on proximity and expansion rate based
+        on the nation origin.
+
+        Returns:
+            None
+        """
         for star in self.stars:
             closest_nation = None
             min_weighted_distance = float("inf")
@@ -277,35 +471,62 @@ class Starmap:
             closest_nation.nation_stars.append(star)
 
     def get_luminosities(self):
+        """
+        Retrieves luminosities of all stars.
+
+        Returns:
+            np.array: Array of luminosities
+        """
         return np.array([star.luminosity for star in self.stars])
 
     def get_masses(self):
+        """
+        Retrieves masses of all stars.
+
+        Returns:
+            np.array: Array of masses
+        """
         return np.array([star.mass for star in self.stars])
 
     def get_normalized_luminosities(self):
-        # Extract luminosities into a NumPy array for efficient computation
+        """
+        Retrieves normalized luminosities of all stars.
+
+        Returns:
+            np.array: Array of normalized luminosities
+        """
         luminosities = np.array([star.luminosity for star in self.stars])
         # Normalize luminosities to the range [0, 1]
         normalized_luminosities = scale_values_to_range(luminosities, 0, 1)
         return np.array(normalized_luminosities)
 
     def get_normalized_masses(self):
-        # Extract masses into a NumPy array for efficient computation
+        """
+        Retrieves normalized masses of all stars.
+
+        Returns:
+            np.array: Array of normalized masses
+        """
         masses = np.array([star.mass for star in self.stars])
         # Normalize masses to the range [0, 1]
         normalized_masses = scale_values_to_range(masses, 0, 1)
         return np.array(normalized_masses)
 
     def plot(self):
+        """
+        Plots the starmap using Plotly.
+
+        Returns:
+            None
+        """
         self.plot_generator.plot()
 
     def __str__(self):
         """
         Returns a string representation of the Starmap object.
 
-        This method counts the number of stars of each spectral class in the starmap and prints the count.
-        It also retrieves the masses and luminosities of the stars, and prints the highest and lowest values of each.
-        It ends by printing a line of dashes to separate the starmap information from other output.
+        Returns:
+            str: String representation of the starmap
         """
         # Count spectral classes
         spectral_classes_count = {}
@@ -378,8 +599,8 @@ class PlotGenerator:
             return_fig=return_fig,
         )
 
+    @staticmethod
     def create_figure(
-        self,
         layout,
         trace_nations,
         trace_planets,
@@ -405,7 +626,8 @@ class PlotGenerator:
             plot(fig, filename="Abyssal_showcase.html", output_type="file")
         fig.show()
 
-    def define_layout(self):
+    @staticmethod
+    def define_layout():
         """
         Defines the layout for the 3D plot of the starmap.
 
@@ -430,19 +652,19 @@ class PlotGenerator:
                     eye=dict(x=0.6, y=0.6, z=1),
                 ),
                 xaxis=dict(
-                    backgroundcolor="rgba(0, 0, 0,0)",
+                    backgroundcolor=config.BACKGROUND_COLOR,
                     gridcolor=grid_color,
                     showbackground=True,
                     zerolinecolor="white",
                 ),
                 yaxis=dict(
-                    backgroundcolor="rgba(0, 0, 0,0)",
+                    backgroundcolor=config.BACKGROUND_COLOR,
                     gridcolor=grid_color,
                     showbackground=True,
                     zerolinecolor="white",
                 ),
                 zaxis=dict(
-                    backgroundcolor="rgba(0, 0, 0,0)",
+                    backgroundcolor=config.BACKGROUND_COLOR,
                     gridcolor=grid_color,
                     showbackground=True,
                     zerolinecolor="white",
@@ -478,7 +700,7 @@ class PlotGenerator:
         orbit_x = []
         orbit_y = []
         orbit_z = []
-        orbit_body_names = []
+
         # Get all orbits and normalize them
         all_orbits = [
             planet.orbit
@@ -489,7 +711,7 @@ class PlotGenerator:
 
         orbit_index = 0
         for star in self.starmap.stars:
-            for body in star.planetary_system.celestial_bodies:
+            for _ in star.planetary_system.celestial_bodies:
                 # Use the normalized orbit as the offset
                 offset = normalized_orbits[orbit_index]
                 orbit_index += 1
@@ -704,13 +926,15 @@ class PlotGenerator:
                             for nation in self.starmap.nations
                             if star in nation.nation_stars
                         ),
-                        "white",  # Default color if no nation is found for the star
+                        "white",
+                        # Default color if no nation is found for the star
                     )
                     for star in self.starmap.stars
                 ],
                 opacity=0.2,
             ),
-            hovertext=hovertext,  # Use the list of nation names corresponding to each star
+            hovertext=hovertext,
+            # Use the list of nation names corresponding to each star
             name="Nations",
             hoverinfo="text",
         )
@@ -724,7 +948,8 @@ class PlotGenerator:
             mode="markers+text",
             marker=dict(
                 size=masses,
-                color=luminosities,  # set color to an array/list of desired values
+                color=luminosities,
+                # set color to an array/list of desired values
                 colorscale="ylorrd_r",  # choose a colorscale
                 opacity=1,
             ),
@@ -747,7 +972,6 @@ class PlotGenerator:
 
         descriptions = []
         for star in self.starmap.stars:
-
             description = star.planetary_system.description
             description = insert_linebreaks(description, max_line_length=50)
 
@@ -784,11 +1008,6 @@ actual_map.generate_nations(
     expansion_rate_set=config.DEFAULT_EXPANSION_RATES,
 )
 actual_map.assign_stars_to_nations()
+
+actual_map.write_all_to_json()
 actual_map.plot()
-
-
-actual_map.write_stars_to_JSON()
-actual_map.write_nations_to_JSON()
-actual_map.write_planetary_systems_to_JSON()
-actual_map.write_planets_to_JSON()
-actual_map.write_asteroid_belts_to_JSON()

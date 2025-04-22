@@ -103,10 +103,13 @@ my_map.generate_star_systems(number_of_stars=500)
 
 # Generate nations
 my_map.generate_nations(
-    name_set=["Empire", "Republic", "Federation"],
-    nation_colour_set=[(0.8, 0.2, 0.2), (0.2, 0.8, 0.2), (0.2, 0.2, 0.8)],
-    origin_set=[{"x": 0, "y": 0, "z": 0}, {"x": 100, "y": 100, "z": 100}, {"x": -100, "y": -100, "z": -100}],
-    expansion_rate_set=[1.0, 0.8, 0.9]
+  name_set=["Empire", "Republic", "Federation"],
+  nation_colour_set=[(0.8, 0.2, 0.2), (0.2, 0.8, 0.2),
+                     (0.2, 0.2, 0.8)],
+  origin_set=[{"x": 0, "y": 0, "z": 0},
+              {"x": 100, "y": 100, "z": 100},
+              {"x": -100, "y": -100, "z": -100}],
+  expansion_rate_set=[1.0, 0.8, 0.9]
 )
 
 # Assign stars to nations
@@ -116,11 +119,11 @@ my_map.assign_stars_to_nations()
 my_map.plot()
 
 # Export data to JSON files
-my_map.write_stars_to_JSON()
-my_map.write_nations_to_JSON()
-my_map.write_planetary_systems_to_JSON()
-my_map.write_planets_to_JSON()
-my_map.write_asteroid_belts_to_JSON()
+my_map.write_stars_to_json()
+my_map.write_nations_to_json()
+my_map.write_planetary_systems_to_json()
+my_map.write_planets_to_json()
+my_map.write_asteroid_belts_to_json()
 ```
 
 ### Web Application

@@ -37,3 +37,6 @@ PLANET_SIZE_RANGE = (7, 12)
 ORBIT_LINE_WIDTH = 1
 ORBIT_OPACITY = 0.7
 ORBIT_COLOR = "grey"
+
+# Plot settings
+BACKGROUND_COLOR = "black"
