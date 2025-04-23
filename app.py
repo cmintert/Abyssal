@@ -100,6 +100,10 @@ app.layout = html.Div(
                 html.P(
                     "Interactive Star Map for Abyssal Universe",
                     style={"textAlign": "center", "color": "white"},
+                ),
+                html.Div(
+                    id='camera-position',
+                    style={"textAlign": "center", "color": "white", "fontSize": "12px"}
                 )
             ]
         ),
@@ -167,6 +171,28 @@ def update_figure(selected_nation_idx, n_clicks, current_fig):
     return fig
 
 
+@app.callback(
+    Output("camera-position", "children"),
+    Input("starmap-3d", "relayoutData"),
+)
+def update_camera_position(relayoutData):
+    """
+    Updates the display of the current camera position.
+
+    Args:
+        relayoutData (dict): Contains camera position data from the 3D graph
+
+    Returns:
+        str: Formatted camera position information
+    """
+    if relayoutData is None or 'scene.camera' not in relayoutData:
+        return "Camera: waiting for movement..."
+
+    camera = relayoutData['scene.camera']
+    return f"Camera - Center: ({camera['center']['x']:.2f}, {camera['center']['y']:.2f}, {camera['center']['z']:.2f}) | Eye: ({camera['eye']['x']:.2f}, {camera['eye']['y']:.2f}, {camera['eye']['z']:.2f})"
+
+
 # Run the app
 if __name__ == "__main__":
     app.run(debug=True)
+
