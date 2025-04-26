@@ -7,19 +7,19 @@ Abyssal StellarMap is a sophisticated space simulation and visualization system 
 
 ### Prerequisites
 - Python 3.x
-- Required packages: numpy, plotly, dash (for web app)
+- Required packages: numpy, plotly, dash, openai, pytest
 
 ### Setup
 1. Clone the repository
-2. Install dependencies: `pip install numpy plotly dash`
-3. Run the application: `python Abyssal_map.py` or `python app.py` for the web interface
+2. Install dependencies: `pip install -r requirements.txt`
+3. Run the application: `python app.py` for the web interface
 
 ## System Architecture
 
 ### Core Modules
 
-#### Abyssal_map.py
-The primary module containing the `Starmap` and `PlotGenerator` classes. This module orchestrates the generation and visualization of the entire star system.
+#### abyssal_map.py
+The primary module containing the `Starmap`, `PlotGenerator`, and `StarSystemFilter` classes. This module orchestrates the generation and visualization of the entire star system.
 
 - **Starmap Class**
   - Manages stars, nations, and mineral distributions
@@ -32,7 +32,11 @@ The primary module containing the `Starmap` and `PlotGenerator` classes. This mo
   - Generates traces for stars, planets, asteroid belts, and nations
   - Configures the layout and appearance of the visualization
 
-#### Map_Components.py
+- **StarSystemFilter Class**
+  - Provides filtering functionality for the star map
+  - Allows filtering by nation, star type, and planet habitability
+
+#### map_components.py
 Contains the fundamental celestial object classes and their behaviors.
 
 - **Nation**
@@ -44,6 +48,10 @@ Contains the fundamental celestial object classes and their behaviors.
   - Properties include position, spectral class, luminosity, and mass
   - Hosts a planetary system
   - Methods for coordinate conversion and habitable zone calculation
+
+- **SmallBody**
+  - Base class for planets and asteroid belts
+  - Handles common properties like orbit and name
 
 - **Planet**
   - Simulates planets with realistic properties
@@ -80,17 +88,38 @@ Helper classes and functions for procedural generation and data processing.
   - Defines minerals with properties like rarity and value
   - Provides descriptions and composition information
 
+- **Helper Functions**
+  - insert_linebreaks: Formats text for display with appropriate line breaks
+  - scale_values_to_range: Normalizes values to a specified range
+
 #### app.py
 A Dash web application providing an interactive interface for the star map.
 
 - Creates a responsive web interface
-- Allows filtering of stars by nation
-- Provides interactive 3D visualization
+- Allows filtering of stars by nation, star type, and habitability
+- Provides interactive 3D visualization with camera controls
+- Supports reset functionality to clear filters
+
+#### config.py
+Contains configuration settings for the Abyssal StellarMap:
+
+- Seed for reproducibility
+- Default values for star systems, nations, and visual settings
+- Configuration for colors, sizes, and appearances
 
 ## Using the System
 
+### Web Application
+The included Dash application provides an interactive web interface:
+
+1. Run `python app.py`
+2. Open a web browser to `http://127.0.0.1:8050/`
+3. Use the filters to view specific nations, star types, or habitable planets
+4. Explore the 3D star map interactively
+5. Reset filters with the "Reset Filters" button
+
 ### Generating a New Universe
-To generate a new star map:
+To generate a new star map programmatically:
 
 ```python
 from abyssal_map import Starmap
@@ -104,8 +133,7 @@ my_map.generate_star_systems(number_of_stars=500)
 # Generate nations
 my_map.generate_nations(
   name_set=["Empire", "Republic", "Federation"],
-  nation_colour_set=[(0.8, 0.2, 0.2), (0.2, 0.8, 0.2),
-                     (0.2, 0.2, 0.8)],
+  nation_colour_set=[(0.8, 0.2, 0.2), (0.2, 0.8, 0.2), (0.2, 0.2, 0.8)],
   origin_set=[{"x": 0, "y": 0, "z": 0},
               {"x": 100, "y": 100, "z": 100},
               {"x": -100, "y": -100, "z": -100}],
@@ -119,29 +147,18 @@ my_map.assign_stars_to_nations()
 my_map.plot()
 
 # Export data to JSON files
-my_map.write_stars_to_json()
-my_map.write_nations_to_json()
-my_map.write_planetary_systems_to_json()
-my_map.write_planets_to_json()
-my_map.write_asteroid_belts_to_json()
+my_map.write_all_to_json()
 ```
-
-### Web Application
-The included Dash application provides an interactive web interface:
-
-1. Run `python app.py`
-2. Open a web browser to `http://127.0.0.1:8050/`
-3. Use the nation filter dropdown to view specific territories
-4. Explore the 3D star map interactively
 
 ## Simulation Details
 
 ### Star Generation
 Stars are generated with realistic properties:
 - Position in 3D space (spherical coordinates converted to Cartesian)
-- Spectral class (O, B, A, F, G, K, M types with appropriate distributions)
+- Spectral class (G, K, M types prioritized for habitable zones)
 - Luminosity based on spectral class
 - Mass calculated from luminosity and spectral class
+- Location noise and stretching for realistic spatial distribution
 
 ### Planetary System Generation
 For each star:
@@ -158,7 +175,8 @@ Planets have detailed simulated properties:
 - Atmosphere
 - Presence of water
 - Rotation period and axial tilt
-- Habitability
+- Density and gravity
+- Habitability assessment
 
 ### Asteroid Belts
 Asteroid belts include:
@@ -174,7 +192,7 @@ Political entities with:
 - Stars assigned based on weighted distance
 
 ## Data Persistence
-The system can export all data to JSON files for persistence and external analysis:
+The system exports all data to JSON files for persistence and external analysis:
 - star_data.json
 - nation_data.json
 - planetary_system_data.json
@@ -188,6 +206,7 @@ The 3D visualization uses Plotly to create an interactive experience:
 - Asteroid belts shown as particle scatters
 - Nations highlighted by color
 - Hover information for all objects
+- Camera position tracking
 
 ## Expanding the System
 
@@ -215,12 +234,12 @@ my_map.generate_nations(
 ```
 
 ### Adjusting Generation Parameters
-Various parameters can be adjusted:
-- Number of stars
-- Space boundary size
-- Spectral class distributions
-- Nation expansion rates
-- Planet generation characteristics
+Various parameters can be adjusted in config.py:
+- SEED for reproducibility
+- DEFAULT_NUM_STARS for star count
+- SPACE_BOUNDARY for size of universe
+- DEFAULT_NATIONS, DEFAULT_NATION_COLORS, etc. for political entities
+- Visual settings for star and planet sizes
 
 ## Technical Notes
 
@@ -229,3 +248,4 @@ Various parameters can be adjusted:
 - Coordinates are managed in both spherical and Cartesian formats
 - Star names use a combination of prefixes, middles, and suffixes to create unique identifiers
 - Planet physical properties are calculated using simplified approximations of real astronomical principles
+- Testing is implemented with pytest
