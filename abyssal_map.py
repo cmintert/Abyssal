@@ -265,8 +265,8 @@ class Starmap:
 
         # Add noise and stretch to star locations after all stars are generated
         # This distorts the star locations to create a more realistic distribution
-        self.star_location_noise()
-        self.star_location_stretch()
+        self.star_location_noise(config.STAR_LOCATION_NOISE)
+        self.star_location_stretch(config.STAR_LOCATION_STRETCH[0], config.STAR_LOCATION_STRETCH[1], config.STAR_LOCATION_STRETCH[2])
 
     @staticmethod
     def generate_orbits_for_star(
@@ -381,10 +381,13 @@ class Starmap:
         Returns:
             None
         """
+
         for star in self.stars:
-            star.x += np.random.uniform(-noise, noise)
-            star.y += np.random.uniform(-noise, noise)
-            star.z += np.random.uniform(-noise, noise)
+
+            position_x = star.get_cartesian_position()[0] + np.random.uniform(-noise, noise)
+            position_y = star.get_cartesian_position()[1] + np.random.uniform(-noise, noise)
+            position_z = star.get_cartesian_position()[2] + np.random.uniform(-noise, noise)
+            star.set_cartesian_position(position_x, position_y, position_z)
 
     def star_location_stretch(self, stretch_x=1, stretch_y=1, stretch_z=0.6):
         """
@@ -401,9 +404,11 @@ class Starmap:
             None
         """
         for star in self.stars:
-            star.x *= stretch_x
-            star.y *= stretch_y
-            star.z *= stretch_z
+            position_x = star.get_cartesian_position()[0] * stretch_x
+            position_y = star.get_cartesian_position()[1] * stretch_y
+            position_z = star.get_cartesian_position()[2] * stretch_z
+            star.set_cartesian_position(position_x, position_y, position_z)
+
 
     def generate_nations(
         self,

@@ -30,6 +30,7 @@ def initialize_starmap():
     starmap.generate_mineral_maps()
     starmap.generate_star_systems(
         number_of_stars=config.DEFAULT_NUM_STARS,
+        map_radius=config.MAP_RADIUS,
     )
     starmap.generate_nations(
         name_set=config.DEFAULT_NATIONS,

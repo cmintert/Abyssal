@@ -304,8 +304,14 @@ class Star:
             ]
         raise ValueError("Luminosity not set.")
 
-    def get_xyz_position(self):
+    def get_cartesian_position(self):
         return self.x, self.y, self.z
+
+    def set_cartesian_position(self, x, y, z):
+        self.x = x
+        self.y = y
+        self.z = z
+        self.convert_to_spherical()
 
     def __str__(self):
         return f"Star ID: {self.id}, Cartesian: ({self.x}, {self.y}, {self.z}), Spherical: (r={self.r}, theta={self.theta}, phi={self.phi})"
@@ -877,7 +883,7 @@ class AsteroidBelt(SmallBody):
         rare_minerals = RareMinerals()
         belt_minerals = []
         list_of_minerals_to_assign = rare_minerals.get_minerals()
-        stellar_position_of_belt = self.star.get_xyz_position()
+        stellar_position_of_belt = self.star.get_cartesian_position()
 
         # Zones for all the minerals
         scarcity_map = self.star.star_map.mineral_maps
