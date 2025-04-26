@@ -18,11 +18,13 @@ class Nation:
         origin=None,
         nation_colour=None,
         space_boundary=500,
+        expansion_rate=0.5,
     ):
         self.name = name
         self.current_radius = 0
         self.nation_stars = []
         self.additional_info = None
+        self.expansion_rate = expansion_rate
 
         if nation_colour is None:
             # if no colour is provided, generate a random colour
@@ -201,6 +203,8 @@ class Star:
         self.star_map = starmap
         if name is None:
             self.name = self.generate_star_name()
+        else:
+            self.name = name
         self.nation = nation
         self.additional_info = None
         # Cartesian coordinates
