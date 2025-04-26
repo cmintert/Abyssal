@@ -1,10 +1,49 @@
 import dash
+import os
 import numpy as np
 from dash import dcc, html
 from dash.dependencies import Input, Output, State
 
 import config
 from abyssal_map import Starmap, PlotGenerator, StarSystemFilter
+from persistence import StarmapReader, StarmapWriter
+
+
+def initialize_starmap():
+    """Initialize the starmap, either from JSON or by generating a new one"""
+    reader = StarmapReader()
+    writer = StarmapWriter()
+
+    if reader.check_json_files_exist():
+        # Try to load existing data
+        starmap = reader.load_starmap()
+        if starmap:
+            print("Successfully loaded existing universe from JSON")
+            return starmap
+        else:
+            print("Failed to load universe from JSON, generating new universe")
+    else:
+        print("JSON files not found, generating new universe")
+
+    # Generate new universe
+    starmap = Starmap()
+    starmap.generate_mineral_maps()
+    starmap.generate_star_systems(
+        number_of_stars=config.DEFAULT_NUM_STARS,
+    )
+    starmap.generate_nations(
+        name_set=config.DEFAULT_NATIONS,
+        nation_colour_set=config.DEFAULT_NATION_COLORS,
+        origin_set=config.DEFAULT_NATION_ORIGINS,
+        expansion_rate_set=config.DEFAULT_EXPANSION_RATES,
+    )
+    starmap.assign_stars_to_nations()
+
+    # Save the newly generated universe
+    writer.save_starmap(starmap)
+
+    return starmap
+
 
 """
 A Dash web application for visualizing an interactive 3D star map of the Abyssal universe.
@@ -33,20 +72,7 @@ np.random.seed(config.SEED)
 NATIONS = config.DEFAULT_NATIONS
 NATION_COLORS = config.DEFAULT_NATION_COLORS
 
-# Create the starmap (do this once at startup)
-starmap = Starmap()
-starmap.generate_star_systems(
-    number_of_stars=config.DEFAULT_NUM_STARS,
-)
-starmap.generate_nations(
-    name_set=config.DEFAULT_NATIONS,  # Skip "All Nations"
-    nation_colour_set=config.DEFAULT_NATION_COLORS,  # Skip None
-    origin_set=config.DEFAULT_NATION_ORIGINS,
-    expansion_rate_set=config.DEFAULT_EXPANSION_RATES,
-)
-starmap.assign_stars_to_nations()
-
-starmap.write_all_to_json()
+starmap = initialize_starmap()
 
 plot_generator = PlotGenerator(starmap)
 
@@ -96,6 +122,10 @@ app.layout = html.Div(
                                 dcc.Checklist(
                                     id="star-type-filter",
                                     options=[
+                                        {"label": "O-Type", "value": "O-Type"},
+                                        {"label": "B-Type", "value": "B-Type"},
+                                        {"label": "A-Type", "value": "A-Type"},
+                                        {"label": "F-Type", "value": "F-Type"},
                                         {"label": "G-Type", "value": "G-Type"},
                                         {"label": "K-Type", "value": "K-Type"},
                                         {"label": "M-Type", "value": "M-Type"},
