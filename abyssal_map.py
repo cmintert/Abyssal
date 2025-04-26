@@ -9,6 +9,30 @@ from Utility import scale_values_to_range, insert_linebreaks, RareMinerals
 import config
 
 
+class StarSystemFilter:
+    def __init__(self):
+        self.active_filters = {}
+
+    def add_filter(self, filter_name, filter_function):
+        """Add a filter with a name and filtering function"""
+        self.active_filters[filter_name] = filter_function
+
+    def remove_filter(self, filter_name):
+        """Remove a filter by name"""
+        if filter_name in self.active_filters:
+            del self.active_filters[filter_name]
+
+    def clear_filters(self):
+        """Remove all filters"""
+        self.active_filters = {}
+
+    def apply_filters(self, stars):
+        """Apply all active filters to the star list"""
+        filtered_stars = stars
+        for filter_name, filter_function in self.active_filters.items():
+            filtered_stars = list(filter(filter_function, filtered_stars))
+        return filtered_stars
+
 # Generate stars
 class Starmap:
     """
@@ -558,35 +582,65 @@ class PlotGenerator:
     def __init__(self, starmap):
         self.starmap = starmap
 
-    def plot(self, html=True, return_fig=False):
+    def plot(self, html=True, return_fig=False, star_filter=None):
+        """
+        Generate the plot with optional filtering
 
-        masses = self.starmap.get_normalized_masses()
+        Parameters:
+        - html: Whether to save as HTML
+        - return_fig: Whether to return the figure object
+        - star_filter: StarSystemFilter object to apply
+        """
+        # Apply filters if provided
+        if star_filter and star_filter.active_filters:
+            stars_to_use = star_filter.apply_filters(self.starmap.stars)
+        else:
+            stars_to_use = self.starmap.stars
+
+        # Check if we have any stars after filtering
+        if not stars_to_use:
+            # Create an empty figure with a message
+            layout = self.define_layout()
+            fig = go.Figure(layout=layout)
+
+            # Add an annotation explaining that no stars match the filter
+            fig.add_annotation(
+                text="No stars match the current filter criteria",
+                x=0.5, y=0.5,
+                xref="paper", yref="paper",
+                showarrow=False,
+                font=dict(size=20, color="white")
+            )
+
+            if return_fig:
+                return fig
+            if html:
+                plot(fig, filename="Abyssal_showcase.html", output_type="file")
+            fig.show()
+            return fig
+
+        # If we have stars, proceed with normal plotting
         masses = scale_values_to_range(
-            masses, config.STAR_SIZE_RANGE[0], config.STAR_SIZE_RANGE[1]
+            [star.mass for star in stars_to_use],
+            config.STAR_SIZE_RANGE[0],
+            config.STAR_SIZE_RANGE[1]
         )
 
-        luminosities = self.starmap.get_normalized_luminosities()
+        luminosities = scale_values_to_range(
+            [star.luminosity for star in stars_to_use],
+            0, 1
+        )
 
-        # Create a trace for the stars
-        trace_stars = self.trace_stars(luminosities, masses)
-
-        # Create trace for the nations
-        trace_nations = self.trace_nations()
-
-        # Create trace for the planets
-        trace_planets = self.trace_planets()
-
-        # Create trace for the planetary orbits
-        trace_planets_orbits = self.trace_planets_orbits()
-
-        # Create trace for the asteroid belts
-        trace_asteroid_belts = self.trace_asteroid_belts()
+        # Create traces with the filtered stars
+        trace_stars = self.trace_stars(luminosities, masses, stars_to_use)
+        trace_nations = self.trace_nations(stars_to_use)
+        trace_planets = self.trace_planets(stars_to_use)
+        trace_planets_orbits = self.trace_planets_orbits(stars_to_use)
+        trace_asteroid_belts = self.trace_asteroid_belts(stars_to_use)
+        trace_planetary_system = self.trace_planetary_system(stars_to_use)
 
         # Create layout for the plot
         layout = self.define_layout()
-
-        # Create trace for the planetary system
-        trace_planetary_system = self.trace_planetary_system()
 
         return self.create_figure(
             layout,
@@ -602,15 +656,15 @@ class PlotGenerator:
 
     @staticmethod
     def create_figure(
-        layout,
-        trace_nations,
-        trace_planets,
-        trace_stars,
-        trace_planets_orbits,
-        trace_asteroid_belts,
-        trace_planetary_system,
-        html=True,
-        return_fig=False,
+            layout,
+            trace_nations,
+            trace_planets,
+            trace_stars,
+            trace_planets_orbits,
+            trace_asteroid_belts,
+            trace_planetary_system,
+            html=True,
+            return_fig=False,
     ):
         data = [
             trace_stars,
@@ -687,31 +741,37 @@ class PlotGenerator:
         )
         return layout
 
-    def trace_planets_orbits(self):
-        """
-        Creates a trace for the orbits of the planets in the starmap.
+    def trace_planets_orbits(self, stars_to_use=None):
+        stars_to_plot = stars_to_use if stars_to_use is not None else self.starmap.stars
 
-        This method iterates over each star in the starmap, and for each star, it iterates over its planets.
-        For each planet, it calculates the points of its orbit in the 3D space.
-        It then creates a Scatter3d trace with this information.
-
-        Returns:
-            trace_planets_orbits (plotly.graph_objs._scatter3d.Scatter3d): A Scatter3d trace representing the orbits of the planets in the starmap.
-        """
         orbit_x = []
         orbit_y = []
         orbit_z = []
 
         # Get all orbits and normalize them
-        all_orbits = [
-            planet.orbit
-            for star in self.starmap.stars
+        all_planets = [
+            planet
+            for star in stars_to_plot
             for planet in star.planetary_system.celestial_bodies
         ]
+
+        if not all_planets:
+            # Return empty trace if no planets
+            return go.Scatter3d(
+                x=[], y=[], z=[],
+                mode="lines",
+                line=dict(color=config.ORBIT_COLOR,
+                          width=config.ORBIT_LINE_WIDTH),
+                opacity=config.ORBIT_OPACITY,
+                name="trace_planets_orbits",
+                hoverinfo="text",
+            )
+
+        all_orbits = [planet.orbit for planet in all_planets]
         normalized_orbits = scale_values_to_range(all_orbits, 1, 17)
 
         orbit_index = 0
-        for star in self.starmap.stars:
+        for star in stars_to_plot:
             for _ in star.planetary_system.celestial_bodies:
                 # Use the normalized orbit as the offset
                 offset = normalized_orbits[orbit_index]
@@ -734,7 +794,8 @@ class PlotGenerator:
                 temp_orbit_y.append(temp_orbit_y[0])
                 temp_orbit_z.append(temp_orbit_z[0])
                 # Append the orbit points to the main lists
-                orbit_x.extend(temp_orbit_x + [None])  # Add None to break the line
+                orbit_x.extend(
+                    temp_orbit_x + [None])  # Add None to break the line
                 orbit_y.extend(temp_orbit_y + [None])
                 orbit_z.extend(temp_orbit_z + [None])
 
@@ -751,17 +812,9 @@ class PlotGenerator:
         )
         return trace_planets_orbits
 
-    def trace_planets(self):
-        """
-        Creates a trace for the planets in the starmap.
+    def trace_planets(self, stars_to_use=None):
+        stars_to_plot = stars_to_use if stars_to_use is not None else self.starmap.stars
 
-        This method iterates over each star in the starmap, and for each star, it iterates over its planets.
-        For each planet, it calculates its position in the 3D space based on the planet's orbit attribute, its mass, and its color based on its habitability.
-        It then creates a Scatter3d trace with this information.
-
-        Returns:
-            trace_planets (plotly.graph_objs._scatter3d.Scatter3d): A Scatter3d trace representing the planets in the starmap.
-        """
         planet_x = []
         planet_y = []
         planet_z = []
@@ -771,15 +824,28 @@ class PlotGenerator:
         planet_additional_info = []
 
         # Get all orbits and normalize them
-        all_orbits = [
-            planet.orbit
-            for star in self.starmap.stars
+        all_planets = [
+            planet
+            for star in stars_to_plot
             for planet in star.planetary_system.celestial_bodies
         ]
+
+        if not all_planets:
+            # Return empty trace if no planets
+            return go.Scatter3d(
+                x=[], y=[], z=[],
+                mode="markers",
+                marker=dict(size=[], color=[]),
+                text=[],
+                name="trace_planets",
+                hoverinfo="text",
+            )
+
+        all_orbits = [planet.orbit for planet in all_planets]
         normalized_orbits = scale_values_to_range(all_orbits, 1, 17)
 
         orbit_index = 0
-        for star in self.starmap.stars:
+        for star in stars_to_plot:
             for planet in star.planetary_system.celestial_bodies:
                 # Use the normalized orbit as the offset
                 offset = normalized_orbits[orbit_index]
@@ -807,7 +873,6 @@ class PlotGenerator:
 
                 if planet.body_type == "Planet":
                     planet_mass.append(planet.mass)
-
                 else:
                     planet_mass.append(0)
 
@@ -826,9 +891,7 @@ class PlotGenerator:
                     config.PLANET_SIZE_RANGE[0],
                     config.PLANET_SIZE_RANGE[1],
                 ),
-                # Adjust
-                # size as needed
-                color=planet_colors,  # Color based on habitability
+                color=planet_colors,
             ),
             text=[
                 f"{name}: {info}"
@@ -839,22 +902,37 @@ class PlotGenerator:
         )
         return trace_planets
 
-    def trace_asteroid_belts(self):
+    def trace_asteroid_belts(self, stars_to_use=None):
+        stars_to_plot = stars_to_use if stars_to_use is not None else self.starmap.stars
+
         asteroid_belt_x = []
         asteroid_belt_y = []
         asteroid_belt_z = []
         hover_texts = []
 
         # Get all orbits and normalize them
-        all_orbits = [
-            planet.orbit
-            for star in self.starmap.stars
+        all_planets = [
+            planet
+            for star in stars_to_plot
             for planet in star.planetary_system.celestial_bodies
         ]
+
+        if not all_planets:
+            # Return empty trace if no planets
+            return go.Scatter3d(
+                x=[], y=[], z=[],
+                mode="markers",
+                marker=dict(size=1, color="grey"),
+                text=[],
+                name="Asteroid Belts",
+                hoverinfo="text",
+            )
+
+        all_orbits = [planet.orbit for planet in all_planets]
         normalized_orbits = scale_values_to_range(all_orbits, 1, 17)
 
         orbit_index = 0
-        for star in self.starmap.stars:
+        for star in stars_to_plot:
             for belt in star.planetary_system.celestial_bodies:
                 # Use the normalized orbit as the offset
                 scatter_number = 0
@@ -862,7 +940,6 @@ class PlotGenerator:
                 orbit_index += 1
 
                 if belt.body_type == "Asteroid Belt":
-
                     # Create a number of points to scatter along the orbit
                     if belt.density == "Sparse":
                         scatter_number = 10
@@ -903,7 +980,9 @@ class PlotGenerator:
         )
         return trace_asteroid_belts
 
-    def trace_nations(self):
+    def trace_nations(self, stars_to_use=None):
+        stars_to_plot = stars_to_use if stars_to_use is not None else self.starmap.stars
+
         # Initially, create a dictionary mapping each star to its nation name
         star_to_nation = {}
         for nation in self.starmap.nations:
@@ -911,13 +990,14 @@ class PlotGenerator:
                 star_to_nation[star] = nation.name  # Map star to nation name
 
         # Generate hover text for each star, defaulting to 'Unknown' if the star isn't in the dictionary
-        hovertext = [star_to_nation.get(star, "Unknown") for star in self.starmap.stars]
+        hovertext = [star_to_nation.get(star, "Unknown") for star in
+                     stars_to_plot]
 
         # Create the Scatter3d trace
         trace_nations = go.Scatter3d(
-            x=[star.x for star in self.starmap.stars],
-            y=[star.y for star in self.starmap.stars],
-            z=[star.z for star in self.starmap.stars],
+            x=[star.x for star in stars_to_plot],
+            y=[star.y for star in stars_to_plot],
+            z=[star.z for star in stars_to_plot],
             mode="markers",
             marker=dict(
                 size=30,
@@ -929,35 +1009,34 @@ class PlotGenerator:
                             if star in nation.nation_stars
                         ),
                         "white",
-                        # Default color if no nation is found for the star
                     )
-                    for star in self.starmap.stars
+                    for star in stars_to_plot
                 ],
                 opacity=0.2,
             ),
             hovertext=hovertext,
-            # Use the list of nation names corresponding to each star
             name="Nations",
             hoverinfo="text",
         )
         return trace_nations
 
-    def trace_stars(self, luminosities, masses):
+    def trace_stars(self, luminosities, masses, stars_to_use=None):
+        stars_to_plot = stars_to_use if stars_to_use is not None else self.starmap.stars
+
         trace_stars = go.Scatter3d(
-            x=[star.x for star in self.starmap.stars],
-            y=[star.y for star in self.starmap.stars],
-            z=[star.z for star in self.starmap.stars],
+            x=[star.x for star in stars_to_plot],
+            y=[star.y for star in stars_to_plot],
+            z=[star.z for star in stars_to_plot],
             mode="markers+text",
             marker=dict(
                 size=masses,
                 color=luminosities,
-                # set color to an array/list of desired values
-                colorscale="ylorrd_r",  # choose a colorscale
+                colorscale="ylorrd_r",
                 opacity=1,
             ),
             text=[
                 f"{star.name[0]}{', ' + star.spectral_class if star.spectral_class is not None else ''}"
-                for star in self.starmap.stars
+                for star in stars_to_plot
             ],
             hoverinfo="text",
             name="Stars",
@@ -965,30 +1044,24 @@ class PlotGenerator:
         )
         return trace_stars
 
-    def trace_planetary_system(self):
-        """Create a trace that shows the description of the planetary system when you hover offer the star.
-        The description has to show up as a text box in the lower right corner of the plot.
-        The text box has a cyan border and a black background, the text is also cyan
-        The text box should be anchored to the lower right corner of the plot
-        The text box should be visible when you hover over the star"""
+    def trace_planetary_system(self, stars_to_use=None):
+        stars_to_plot = stars_to_use if stars_to_use is not None else self.starmap.stars
 
         descriptions = []
-        for star in self.starmap.stars:
+        for star in stars_to_plot:
             description = star.planetary_system.description
             description = insert_linebreaks(description, max_line_length=50)
-
             descriptions.append(description)
 
         trace_planetary_system = go.Scatter3d(
-            x=[star.x for star in self.starmap.stars],
-            y=[star.y for star in self.starmap.stars],
-            z=[star.z for star in self.starmap.stars],
+            x=[star.x for star in stars_to_plot],
+            y=[star.y for star in stars_to_plot],
+            z=[star.z for star in stars_to_plot],
             mode="markers",
             opacity=0,
             text=descriptions,
             hoverinfo="text",
             name="Planetary System",
-            # Box color black, border color cyan, text color cyan, anchored to bottom right
             hoverlabel=dict(
                 bgcolor="black",
                 bordercolor="cyan",

@@ -4,7 +4,7 @@ from dash import dcc, html
 from dash.dependencies import Input, Output, State
 
 import config
-from abyssal_map import Starmap, PlotGenerator
+from abyssal_map import Starmap, PlotGenerator, StarSystemFilter
 
 """
 A Dash web application for visualizing an interactive 3D star map of the Abyssal universe.
@@ -21,7 +21,8 @@ The starmap is generated once at startup to ensure consistency during the sessio
 # Initialize the Dash app
 app = dash.Dash(
     __name__,
-    meta_tags=[{"name": "viewport", "content": "width=device-width, initial-scale=1"}],
+    meta_tags=[
+        {"name": "viewport", "content": "width=device-width, initial-scale=1"}],
 )
 server = app.server
 
@@ -29,9 +30,8 @@ server = app.server
 np.random.seed(config.SEED)
 
 # Nation data
-ALL_NATIONS_ENTRY = "All Nations"
-NATIONS = [ALL_NATIONS_ENTRY] + config.DEFAULT_NATIONS
-NATION_COLORS = [None] + config.DEFAULT_NATION_COLORS
+NATIONS = config.DEFAULT_NATIONS
+NATION_COLORS = config.DEFAULT_NATION_COLORS
 
 # Create the starmap (do this once at startup)
 starmap = Starmap()
@@ -53,39 +53,101 @@ plot_generator = PlotGenerator(starmap)
 # Define the app layout
 app.layout = html.Div(
     [
-        html.H1("Abyssal Star Map", style={"textAlign": "center", "color": "white"}),
+        html.H1("Abyssal Star Map",
+                style={"textAlign": "center", "color": "white"}),
         html.Div(
             [
                 html.Div(
                     [
-                        html.Label(
-                            "Filter by Nation:",
-                            style={"color": "white", "marginRight": "10px"},
-                        ),
-                        dcc.Dropdown(
-                            id="nation-filter",
-                            options=[
-                                {"label": nation, "value": i}
-                                for i, nation in enumerate(NATIONS)
+                        # Nations filter section
+                        html.Div(
+                            [
+                                html.Label(
+                                    "Filter by Nation:",
+                                    style={"color": "white",
+                                           "fontWeight": "bold",
+                                           "marginBottom": "5px"},
+                                ),
+                                dcc.Checklist(
+                                    id="nation-filter",
+                                    options=[
+                                        {"label": nation, "value": nation}
+                                        for nation in NATIONS
+                                    ],
+                                    value=[],
+                                    # Default to no nations selected (show all)
+                                    style={"color": "white"},
+                                    labelStyle={"display": "block",
+                                                "marginBottom": "3px"},
+                                ),
                             ],
-                            value=0,  # Default to "All Nations"
-                            style={
-                                "width": "250px",
-                                "backgroundColor": "black",
-                                "color": "white",
-                            },
+                            style={"marginRight": "20px", "minWidth": "200px"},
                         ),
+
+                        # Star Type filter section
+                        html.Div(
+                            [
+                                html.Label(
+                                    "Filter by Star Type:",
+                                    style={"color": "white",
+                                           "fontWeight": "bold",
+                                           "marginBottom": "5px"},
+                                ),
+                                dcc.Checklist(
+                                    id="star-type-filter",
+                                    options=[
+                                        {"label": "G-Type", "value": "G-Type"},
+                                        {"label": "K-Type", "value": "K-Type"},
+                                        {"label": "M-Type", "value": "M-Type"},
+                                    ],
+                                    value=[],
+                                    # Default to no types selected (show all)
+                                    style={"color": "white"},
+                                    labelStyle={"display": "block",
+                                                "marginBottom": "3px"},
+                                ),
+                            ],
+                            style={"marginRight": "20px", "minWidth": "150px"},
+                        ),
+
+                        # Habitable planet filter
+                        html.Div(
+                            [
+                                html.Label(
+                                    "Other Filters:",
+                                    style={"color": "white",
+                                           "fontWeight": "bold",
+                                           "marginBottom": "5px"},
+                                ),
+                                dcc.Checklist(
+                                    id="habitable-filter",
+                                    options=[{"label": "Habitable Planets Only",
+                                              "value": "yes"}],
+                                    value=[],
+                                    style={"color": "white"},
+                                    labelStyle={"display": "block",
+                                                "marginBottom": "3px"},
+                                ),
+                            ],
+                            style={"minWidth": "200px"},
+                        ),
+
+                        # Reset button
                         html.Button(
-                            "Reset View",
+                            "Reset Filters",
                             id="reset-button",
-                            style={"marginLeft": "10px"},
+                            style={"marginLeft": "20px", "height": "40px"},
                         ),
                     ],
                     style={
                         "display": "flex",
-                        "alignItems": "center",
+                        "alignItems": "flex-start",
                         "justifyContent": "center",
-                        "padding": "10px",
+                        "padding": "15px",
+                        "flexWrap": "wrap",
+                        "backgroundColor": "rgba(30, 30, 30, 0.7)",
+                        "borderRadius": "10px",
+                        "margin": "10px",
                     },
                 ),
                 dcc.Graph(
@@ -103,7 +165,8 @@ app.layout = html.Div(
                 ),
                 html.Div(
                     id='camera-position',
-                    style={"textAlign": "center", "color": "white", "fontSize": "12px"}
+                    style={"textAlign": "center", "color": "white",
+                           "fontSize": "12px"}
                 )
             ]
         ),
@@ -114,66 +177,64 @@ app.layout = html.Div(
 
 @app.callback(
     Output("starmap-3d", "figure"),
-    [Input("nation-filter", "value"), Input("reset-button", "n_clicks")],
-    [State("starmap-3d", "figure")],
+    [
+        Input("nation-filter", "value"),
+        Input("star-type-filter", "value"),
+        Input("habitable-filter", "value"),
+        Input("reset-button", "n_clicks"),
+    ],
 )
-def update_figure(selected_nation_idx, n_clicks, current_fig):
+def update_figure(selected_nations, selected_star_types, habitable_only,
+                  n_clicks):
     """
-    Updates the 3D starmap visualization based on user input.
-
-    This callback function filters the displayed stars based on the selected nation
-    and handles view reset requests. It's crucial for providing an interactive
-    experience while maintaining performance by updating only necessary elements.
+    Updates the 3D starmap visualization based on filter selections.
 
     Args:
-        selected_nation_idx (int): Index of the selected nation in the NATIONS list
+        selected_nations (list): List of selected nation names
+        selected_star_types (list): List of selected star types
+        habitable_only (list): List containing 'yes' if the habitable filter is checked
         n_clicks (int): Number of times the reset button has been clicked
-        current_fig (dict): Current figure state of the 3D starmap
 
     Returns:
-        dict: Updated figure configuration for the 3D starmap
-
-    Why:
-        We need this callback to provide real-time filtering of stars by nation,
-        which helps users focus on specific areas of interest in the map while
-        maintaining the overall context of the universe.
+        dict: Updated figure configuration
     """
-    # Defensive check
-    if selected_nation_idx is None:
-        selected_nation_idx = 0
+    # Create a filter object
+    star_filter = StarSystemFilter()
 
-    # Create a new figure based on the selected nation
-    if selected_nation_idx == 0:  # "All Nations"
-        return plot_generator.plot(html=False, return_fig=True)
+    # Apply nation filter if any nations are selected
+    if selected_nations:
+        star_filter.add_filter(
+            "nation",
+            lambda star: star.nation and star.nation.name in selected_nations
+        )
 
-    # Filter stars by nation
-    filtered_stars = [
-        star
-        for star in starmap.stars
-        if star.nation.name == NATIONS[selected_nation_idx]
-    ]
+    # Apply star type filter if any types are selected
+    if selected_star_types:
+        star_filter.add_filter(
+            "star_type",
+            lambda star: star.spectral_class in selected_star_types
+        )
 
-    # Create a custom figure with only the selected nation's stars
-    fig = current_fig
+    # Apply habitable planet filter if selected
+    if "yes" in habitable_only:
+        star_filter.add_filter(
+            "habitable",
+            lambda star: any(
+                hasattr(planet, 'habitable') and planet.habitable
+                for planet in star.planetary_system.celestial_bodies
+                if planet.body_type == "Planet"
+            )
+        )
 
-    # Update the stars trace
-    for trace in fig["data"]:
-        if trace["name"] == "Stars":
-            # Filter x, y, z coordinates for the selected nation
-            x_coords = [star.x for star in filtered_stars]
-            y_coords = [star.y for star in filtered_stars]
-            z_coords = [star.z for star in filtered_stars]
-
-            trace["x"] = x_coords
-            trace["y"] = y_coords
-            trace["z"] = z_coords
-
-    return fig
+    # Generate the plot with applied filters
+    return plot_generator.plot(html=False, return_fig=True,
+                               star_filter=star_filter)
 
 
 @app.callback(
     Output("camera-position", "children"),
     Input("starmap-3d", "relayoutData"),
+    prevent_initial_call=True
 )
 def update_camera_position(relayoutData):
     """
@@ -191,8 +252,20 @@ def update_camera_position(relayoutData):
     camera = relayoutData['scene.camera']
     return f"Camera - Center: ({camera['center']['x']:.2f}, {camera['center']['y']:.2f}, {camera['center']['z']:.2f}) | Eye: ({camera['eye']['x']:.2f}, {camera['eye']['y']:.2f}, {camera['eye']['z']:.2f})"
 
+@app.callback(
+    [
+        Output("nation-filter", "value"),
+        Output("star-type-filter", "value"),
+        Output("habitable-filter", "value")
+    ],
+    Input("reset-button", "n_clicks"),
+    prevent_initial_call=True
+)
+def reset_filters(n_clicks):
+    """Reset all filters to their default values"""
+    return [], [], []
+
 
 # Run the app
 if __name__ == "__main__":
     app.run(debug=True)
-
