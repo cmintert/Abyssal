@@ -317,29 +317,23 @@ class Star:
         return f"Star ID: {self.id}, Cartesian: ({self.x}, {self.y}, {self.z}), Spherical: (r={self.r}, theta={self.theta}, phi={self.phi})"
 
 
-class Planet(SmallBody):
-    def __init__(
-        self,
-        star,
-        name=None,
-        mass=None,
-        composition=None,
-        density=None,
-        orbital_time=None,
-        rotation_period=None,
-        tilt=None,
-        moons="Unkonwn",
-        atmosphere=None,
-        surface_temperature=None,
-        presence_of_water=None,
-        radius=None,
-        orbit=None,
-        gravity=None,
-        habitable=False,
-    ):
-        super().__init__(name, star, "Planet", orbit)
+class PlanetProperties:
+    """Container for planet-specific properties not handled by SmallBody"""
 
-        self.star = star
+    def __init__(self,
+                 mass=None,
+                 density=None,
+                 radius=None,
+                 composition=None,
+                 orbital_time=None,
+                 rotation_period=None,
+                 tilt=None,
+                 moons="Unknown",
+                 atmosphere=None,
+                 surface_temperature=None,
+                 presence_of_water=None,
+                 gravity=None,
+                 habitable=False):
         self.mass = mass
         self.density = density
         self.radius = radius
@@ -351,9 +345,36 @@ class Planet(SmallBody):
         self.atmosphere = atmosphere
         self.surface_temperature = surface_temperature
         self.presence_of_water = presence_of_water
-        self.radius = radius
-        self.habitable = habitable
         self.gravity = gravity
+        self.habitable = habitable
+
+
+class Planet(SmallBody):
+    def __init__(self,
+                 star,
+                 name=None,
+                 orbit=None,
+                 properties=None):
+        # Initialize the parent class
+        super().__init__(name, star, "Planet", orbit)
+
+        # Initialize planet-specific properties
+        self.properties = properties or PlanetProperties()
+
+        # For backward compatibility, expose properties directly
+        self.mass = self.properties.mass
+        self.density = self.properties.density
+        self.radius = self.properties.radius
+        self.composition = self.properties.composition
+        self.orbital_time = self.properties.orbital_time
+        self.rotation_period = self.properties.rotation_period
+        self.tilt = self.properties.tilt
+        self.moons = self.properties.moons
+        self.atmosphere = self.properties.atmosphere
+        self.surface_temperature = self.properties.surface_temperature
+        self.presence_of_water = self.properties.presence_of_water
+        self.gravity = self.properties.gravity
+        self.habitable = self.properties.habitable
 
     def __str__(self):
         return f"{self.name}: {self.composition} planet at {self.orbit:.2f} AU, Mass: {self.mass:.2f} Earth masses, Radius: {self.radius:.2f} km, Density: {self.density:.2f} g/cm^3, Surface Temperature: {self.surface_temperature:.2f}°C, Presence of Water: {self.presence_of_water}, Atmosphere: {self.atmosphere}, Axial Tilt: {self.tilt}°, Rotation Period: {self.rotation_period} hours, Habitable: {self.habitable}"
@@ -372,23 +393,21 @@ class Planet(SmallBody):
 
     def serialize_planet_to_dict(self):
         data = super().serialize_small_body_to_dict()
-        data.update(
-            {
-                "mass": self.mass,
-                "density": self.density,
-                "radius": self.radius,
-                "composition": self.composition,
-                "orbital_time": self.orbital_time,
-                "rotation_period": self.rotation_period,
-                "tilt": self.tilt,
-                "moons": self.moons,
-                "atmosphere": self.atmosphere,
-                "surface_temperature": self.surface_temperature,
-                "presence_of_water": self.presence_of_water,
-                "gravity": self.gravity,
-                "habitable": self.habitable,
-            }
-        )
+        data.update({
+            "mass": self.mass,
+            "density": self.density,
+            "radius": self.radius,
+            "composition": self.composition,
+            "orbital_time": self.orbital_time,
+            "rotation_period": self.rotation_period,
+            "tilt": self.tilt,
+            "moons": self.moons,
+            "atmosphere": self.atmosphere,
+            "surface_temperature": self.surface_temperature,
+            "presence_of_water": self.presence_of_water,
+            "gravity": self.gravity,
+            "habitable": self.habitable,
+        })
         return data
 
     def generate_planet(self, orbit, star, habitable=False):
@@ -399,11 +418,7 @@ class Planet(SmallBody):
         - habitable: Whether the planet is within the habitable zone.
         """
         self.orbit = orbit
-
-        if habitable:
-            self.habitable = True
-        else:
-            self.habitable = False
+        self.habitable = habitable
 
         # Define the planet's name based on its orbit
         name = PlanetNames(
@@ -415,7 +430,8 @@ class Planet(SmallBody):
         if habitable:
             self.mass = np.random.uniform(0.5, 2)
         else:
-            self.mass = self.generate_planet_mass(self.orbit, star.goldilocks_zone())
+            self.mass = self.generate_planet_mass(self.orbit,
+                                                  star.goldilocks_zone())
 
         # Calculate the planet's composition
         if habitable:
@@ -426,14 +442,12 @@ class Planet(SmallBody):
             )
 
         # Calculate the planet's density
-
         if habitable:
             self.density = np.random.uniform(3, 6)
         else:
             self.density = self.generate_density(self.composition)
 
         # Calculate the planet's radius
-
         self.radius = self.generate_radius(self.mass, self.density)
 
         # Calculate the planet's atmosphere
@@ -448,7 +462,8 @@ class Planet(SmallBody):
 
         # Calculate the planet's surface temperature
         if habitable:
-            self.surface_temperature = np.random.uniform(-5, 30)  # In degrees Celsius
+            self.surface_temperature = np.random.uniform(-5,
+                                                         30)  # In degrees Celsius
         else:
             self.surface_temperature = self.estimate_surface_temperature(
                 self.orbit, star.luminosity, self.atmosphere
@@ -504,11 +519,12 @@ class Planet(SmallBody):
         # Calculate the orbital time based on the star's mass and the planet's orbit
         # Using the formula: orbital time = 2 * pi * sqrt((orbit distance^3) / (G * star mass))
         # Where G is the gravitational constant
-        G = 6.674 * (10**-11)
+        G = 6.674 * (10 ** -11)
         orbital_time = (
-            2
-            * math.pi
-            * math.sqrt((self.orbit**3) / (G * (self.star.mass * 1.989 * (10**30))))
+                2
+                * math.pi
+                * math.sqrt(
+            (self.orbit ** 3) / (G * (self.star.mass * 1.989 * (10 ** 30))))
         )
         return orbital_time
 
@@ -573,7 +589,8 @@ class Planet(SmallBody):
         - A string describing the planet's composition.
         """
         # Approximate frost line calculation (simplified)
-        frost_line = 4.85 * (star_luminosity**0.5)  # In AU, very rough estimate
+        frost_line = 4.85 * (
+                    star_luminosity ** 0.5)  # In AU, very rough estimate
 
         # Determine composition based on mass and orbit distance
         if mass < 0.5:
@@ -615,9 +632,9 @@ class Planet(SmallBody):
         # Calculate the radius based on mass and density
         # Using the formula: volume = mass / density
         # Then calculate the radius from the volume of a sphere
-        EARTH_MASS = 5.972 * (10**24)  # kg
+        EARTH_MASS = 5.972 * (10 ** 24)  # kg
         volume = (
-            mass * EARTH_MASS / (density * 1000)
+                mass * EARTH_MASS / (density * 1000)
         )  # Mass is provided in Earth masses, density in g/cm^3
         radius = (3 * volume / (4 * math.pi)) ** (1 / 3) / 1000  # Convert to km
         return radius
@@ -672,7 +689,7 @@ class Planet(SmallBody):
 
     @staticmethod
     def estimate_surface_temperature(
-        orbit_distance, star_luminosity, atmosphere_description
+            orbit_distance, star_luminosity, atmosphere_description
     ):
         """
         Estimates a planet's surface temperature based on its orbit distance,
@@ -690,7 +707,8 @@ class Planet(SmallBody):
         # Using a simplified version of the inverse square law for solar radiation
         # and assuming Earth's albedo and greenhouse effect as a base
         baseline_temp = (
-            278 * (star_luminosity**0.25) / (orbit_distance**0.5) - 273.15
+                278 * (star_luminosity ** 0.25) / (
+                    orbit_distance ** 0.5) - 273.15
         )  # Convert to Celsius
 
         # Adjust temperature based on atmospheric description
@@ -707,7 +725,7 @@ class Planet(SmallBody):
 
     @staticmethod
     def estimate_water_presence(
-        orbit_distance, mass, star, composition, surface_temperature
+            orbit_distance, mass, star, composition, surface_temperature
     ):
         """
         Estimates the likelihood of the presence of water on a planet based on its orbit distance, mass,
@@ -734,10 +752,10 @@ class Planet(SmallBody):
 
         # Water presence logic
         if (
-            composition == "Rocky"
-            and mass > 0.5
-            and habitable_zone
-            and 0 <= surface_temperature <= 100
+                composition == "Rocky"
+                and mass > 0.5
+                and habitable_zone
+                and 0 <= surface_temperature <= 100
         ):
             water_presence = "Liquid water"
         elif composition == "Rocky" and habitable_zone:
@@ -798,8 +816,8 @@ class Planet(SmallBody):
             rotation_threshold = 1.5  # Maximum rotation period to likely maintain a magnetic field, in Earth days
 
             if (
-                self.mass >= mass_threshold
-                and self.rotation_period <= rotation_threshold
+                    self.mass >= mass_threshold
+                    and self.rotation_period <= rotation_threshold
             ):
                 has_magnetic_field = np.random.choice(
                     [True, False], p=[0.8, 0.2]
@@ -818,8 +836,9 @@ class Planet(SmallBody):
         # Calculate the gravity based on mass and radius
         # Using the formula: gravity = (G * mass) / radius^2
         # Where G is the gravitational constant
-        G = 6.674 * (10**-11)
-        gravity = (G * self.mass * (5.972 * (10**24))) / ((self.radius * 1000) ** 2)
+        G = 6.674 * (10 ** -11)
+        gravity = (G * self.mass * (5.972 * (10 ** 24))) / (
+                    (self.radius * 1000) ** 2)
 
         return gravity
 
