@@ -1,5 +1,7 @@
 import numpy as np
 import networkx as nx
+
+import config
 from random_generator import RandomGenerator
 
 random_generator = RandomGenerator.get_instance()
@@ -24,9 +26,9 @@ class TransportNetwork:
     """
 
     def __init__(self, starmap,
-                 stellar_projector_range=20.0,
-                 ship_projector_range=1.0,
-                 stellar_projector_density=0.2):
+                 stellar_projector_range=config.STELLAR_PROJECTOR_RANGE,
+                 ship_projector_range=config.SHIP_PROJECTOR_RANGE,
+                 stellar_projector_density=config.STELLAR_PROJECTOR_DENSITY):
         """
         Initialize the transport network.
 

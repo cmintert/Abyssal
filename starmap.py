@@ -761,6 +761,7 @@ class PlotGenerator:
         trace_planets_orbits = self.trace_planets_orbits(stars_to_use)
         trace_asteroid_belts = self.trace_asteroid_belts(stars_to_use)
         trace_planetary_system = self.trace_planetary_system(stars_to_use)
+        trace_projectors = self.trace_stellar_projectors(stars_to_use)
 
         # Add population trace if population model exists
         if hasattr(self.starmap, 'population_model'):
@@ -778,7 +779,8 @@ class PlotGenerator:
             trace_planets,
             trace_planets_orbits,
             trace_asteroid_belts,
-            trace_planetary_system
+            trace_planetary_system,
+            trace_projectors,
         ]
 
         # Add population trace if it exists
@@ -1351,3 +1353,76 @@ class PlotGenerator:
             ),
         )
         return trace_planetary_system
+
+    def trace_stellar_projectors(self, stars_to_use=None):
+        """
+        Create a trace for the stellar projector connections in the primary network.
+
+        Args:
+            stars_to_use (list, optional): List of stars to include in the trace
+
+        Returns:
+            go.Scatter3d: The trace for stellar projector connections
+        """
+        # Check if transport network exists
+        if not hasattr(self.starmap, 'transport_network'):
+            return go.Scatter3d(
+                x=[], y=[], z=[],
+                mode='lines',
+                name='Stellar Projectors',
+                line=dict(color='cyan', width=2),
+                opacity=0.7,
+                hoverinfo='none'
+            )
+
+        # Filter stars if needed
+        stars_to_plot = stars_to_use if stars_to_use is not None else self.starmap.stars
+        star_ids = {star.id for star in stars_to_plot}
+
+        # Initialize line coordinates
+        line_x = []
+        line_y = []
+        line_z = []
+        hover_texts = []
+
+        # Get the primary network graph
+        primary_network = self.starmap.transport_network.primary_network
+
+        # For each edge in the primary network
+        for node1, node2, edge_data in primary_network.edges(data=True):
+            # Only include edges where both stars are in the filtered set
+            if node1 in star_ids and node2 in star_ids:
+                # Only include edges that are stellar projector connections
+                if edge_data.get('type') == 'stellar_projector':
+                    # Get star objects
+                    star1 = self.starmap.transport_network.star_map[node1]
+                    star2 = self.starmap.transport_network.star_map[node2]
+
+                    # Add line segment
+                    line_x.extend([star1.x, star2.x, None])
+                    line_y.extend([star1.y, star2.y, None])
+                    line_z.extend([star1.z, star2.z, None])
+
+                    # Add hover text
+                    distance = edge_data.get('distance', 0)
+                    hover_text = f"Stellar Projector Link: {star1.name[0]} to {star2.name[0]}<br>Distance: {distance:.2f} LY"
+                    hover_texts.append(hover_text)
+
+        # Create the trace
+        trace_projectors = go.Scatter3d(
+            x=line_x,
+            y=line_y,
+            z=line_z,
+            mode='lines',
+            line=dict(
+                color='cyan',
+                width=2,
+                dash='dash'  # Make the lines dashed to distinguish from orbits
+            ),
+            opacity=0.9,
+            name='Stellar Projectors',
+            hoverinfo='text',
+            text=hover_texts
+        )
+
+        return trace_projectors
