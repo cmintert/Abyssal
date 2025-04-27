@@ -5,6 +5,9 @@ from map_components import Nation, Star, Planetary_System, Planet, AsteroidBelt,
     MineralMap
 from starmap import Starmap
 
+from transport_network import TransportNetwork
+from population_model import PopulationModel, ColonyPopulation
+
 
 class StarmapReader:
     """Handles reading starmap data from JSON files and constructing objects"""
@@ -21,6 +24,91 @@ class StarmapReader:
             return data
         except Exception as e:
             print(f"Error loading data from {filename}: {e}")
+            return None
+
+    def check_population_data_exists(self):
+        """Check if population data JSON file exists"""
+        return os.path.exists("json_data/population_data.json")
+
+    def load_population_data(self, starmap):
+        """
+        Load population data from JSON and reconstruct the population model.
+
+        Args:
+            starmap (Starmap): The starmap to attach population data to
+
+        Returns:
+            PopulationModel or None: The loaded population model, or None if loading failed
+        """
+        try:
+            # Load the population data JSON
+            population_data = self.read_from_json(
+                "json_data/population_data.json")
+            if not population_data:
+                return None
+
+            # First ensure transport network exists
+            if not hasattr(starmap, 'transport_network'):
+                print(
+                    "Creating transport network before loading population data...")
+                starmap.generate_transport_network()
+
+            # Create the population model with the current year from the data
+            current_year = population_data.get('current_year', 2675)
+            population_model = PopulationModel(starmap,
+                                               starmap.transport_network,
+                                               current_year)
+
+            # Create a mapping of star ID and planet name to planet object
+            planet_lookup = {}
+            for star in starmap.stars:
+                for planet in star.planetary_system.celestial_bodies:
+                    if planet.body_type == "Planet":
+                        key = (star.id, planet.name)
+                        planet_lookup[key] = planet
+
+            # Create colony objects for each colony in the data
+            for colony_data in population_data.get('colonies', []):
+                star_id = colony_data.get('star_id')
+                planet_name = colony_data.get('planet_name')
+
+                # Look up the planet object
+                key = (star_id, planet_name)
+                if key in planet_lookup:
+                    planet = planet_lookup[key]
+
+                    # Create the colony with the loaded data
+                    colony = ColonyPopulation(
+                        planet=planet,
+                        founding_year=colony_data.get('founding_year'),
+                        initial_population=colony_data.get(
+                            'initial_population'),
+                        growth_rate=colony_data.get('growth_rate'),
+                        habitability_score=colony_data.get(
+                            'habitability_score'),
+                        classification=colony_data.get('classification')
+                    )
+
+                    # Update the colony's current population
+                    colony.current_population = colony_data.get(
+                        'current_population', 0)
+
+                    # Add the colony to the population model and the planet
+                    population_model.colonies[planet] = colony
+                    planet.colony = colony
+
+                    # Update the planet description with population info
+                    population_model._update_planet_description(planet)
+
+            # Set the population model on the starmap
+            starmap.population_model = population_model
+
+            print(
+                f"Loaded population data for {len(population_model.colonies)} colonies")
+            return population_model
+
+        except Exception as e:
+            print(f"Error loading population data: {e}")
             return None
 
     def load_starmap(self):
@@ -255,6 +343,14 @@ class StarmapReader:
         # Populate starmap.used_star_names to prevent duplicates if new stars are added
         starmap.used_star_names = [star.name for star in starmap.stars]
 
+        # Load population data if it exists
+        if self.check_population_data_exists():
+            try:
+                print("Loading population data...")
+                self.load_population_data(starmap)
+            except Exception as e:
+                print(f"Error loading population data: {e}")
+
         return starmap
 
     def check_json_files_exist(self):
@@ -323,3 +419,62 @@ class StarmapWriter:
              if belt.body_type == "Asteroid Belt"],
             "json_data/asteroid_belt_data.json"
         )
+
+        # Save population data if available
+        if hasattr(starmap, 'population_model'):
+            self.save_population_data(starmap)
+
+    def save_population_data(self, starmap):
+        """
+        Save population data to a JSON file.
+
+        Args:
+            starmap (Starmap): The starmap with population data to save
+        """
+        if hasattr(starmap, 'population_model'):
+            population_data = starmap.population_model.serialize_to_dict()
+            self.write_to_json(population_data,
+                               "json_data/population_data.json")
+        else:
+            print("No population model to save.")
+
+    def save_transport_network(self, starmap):
+        """
+        Save transport network data to a JSON file.
+        This is optional as the transport network can be regenerated.
+
+        Args:
+            starmap (Starmap): The starmap with transport network to save
+        """
+        if hasattr(starmap, 'transport_network'):
+            # Create a serializable representation of the network
+            transport_data = {
+                'stellar_projector_range': starmap.transport_network.stellar_projector_range,
+                'ship_projector_range': starmap.transport_network.ship_projector_range,
+                'stellar_projector_density': starmap.transport_network.stellar_projector_density,
+                'stars': []
+            }
+
+            # For each star, save its transport data
+            for star in starmap.stars:
+                if hasattr(star, 'transport_data'):
+                    star_transport = {
+                        'id': star.id,
+                        'has_projector': star.transport_data.get(
+                            'has_projector', False),
+                        'primary_connected': star.transport_data.get(
+                            'primary_connected', False),
+                        'secondary_connected': star.transport_data.get(
+                            'secondary_connected', False),
+                        'shortest_path_from_sol': star.transport_data.get(
+                            'shortest_path_from_sol', float('inf')),
+                        'accessibility_score': star.transport_data.get(
+                            'accessibility_score', 100),
+                        'hub_score': star.transport_data.get('hub_score', 0)
+                    }
+                    transport_data['stars'].append(star_transport)
+
+            self.write_to_json(transport_data,
+                               "json_data/transport_network_data.json")
+        else:
+            print("No transport network to save.")

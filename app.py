@@ -21,6 +21,19 @@ def initialize_starmap():
         starmap = reader.load_starmap()
         if starmap:
             print("Successfully loaded existing universe from JSON")
+
+            # Generate transport network and population model
+            try:
+                print("Generating transport network...")
+                starmap.generate_transport_network()
+
+                print("Generating population model...")
+                starmap.generate_colony_populations()
+
+                print("Population summary:", starmap.get_population_summary())
+            except Exception as e:
+                print(f"Error generating transport network or population: {e}")
+
             return starmap
         else:
             print("Failed to load universe from JSON, generating new universe")
@@ -42,8 +55,21 @@ def initialize_starmap():
     )
     starmap.assign_stars_to_nations()
 
+    # Generate transport network and population model
+    try:
+        print("Generating transport network...")
+        starmap.generate_transport_network()
+
+        print("Generating population model...")
+        starmap.generate_colony_populations()
+
+        print("Population summary:", starmap.get_population_summary())
+    except Exception as e:
+        print(f"Error generating transport network or population: {e}")
+
     # Save the newly generated universe
     writer.save_starmap(starmap)
+    starmap.write_population_data_to_json()
 
     return starmap
 
@@ -167,11 +193,76 @@ app.layout = html.Div(
                             style={"minWidth": "200px"},
                         ),
 
+                        html.Div(
+                            [
+                                html.Label(
+                                    "Population Filters:",
+                                    style={"color": "white", "fontWeight": "bold", "marginBottom": "5px"},
+                                ),
+                                dcc.Checklist(
+                                    id="population-filter",
+                                    options=[
+                                        {"label": "Primary Hubs Only", "value": "primary_hub"},
+                                        {"label": "Million+ Colonies Only", "value": "large_colonies"}
+                                    ],
+                                    value=[],
+                                    style={"color": "white"},
+                                    labelStyle={"display": "block", "marginBottom": "3px"},
+                                ),
+                            ],
+                            style={"minWidth": "200px"},
+                        ),
+
                         # Reset button
                         html.Button(
                             "Reset Filters",
                             id="reset-button",
                             style={"marginLeft": "20px", "height": "40px"},
+                        ),
+                        html.Div(
+                            [
+                                html.Label(
+                                    "Time Advancement:",
+                                    style={"color": "white", "fontWeight": "bold", "marginBottom": "5px"},
+                                ),
+                                dcc.Input(
+                                    id="time-advance-input",
+                                    type="number",
+                                    min=1,
+                                    max=100,
+                                    value=10,
+                                    style={"width": "60px", "marginRight": "10px"}
+                                ),
+                                html.Button(
+                                    "Advance Years",
+                                    id="time-advance-button",
+                                    style={"height": "40px"},
+                                ),
+                                html.Div(
+                                    id="time-advance-info",
+                                    style={"color": "white", "marginTop": "5px", "fontSize": "14px"}
+                                )
+                            ],
+                            style={"marginLeft": "20px", "display": "flex", "alignItems": "center", "flexWrap": "wrap"},
+                        ),
+
+                        # Add a population statistics box to display population summary:
+                        html.Div(
+                            [
+                                html.H3("Population Statistics", style={"color": "white", "textAlign": "center"}),
+                                html.Pre(
+                                    id="population-stats",
+                                    style={
+                                        "color": "white",
+                                        "backgroundColor": "rgba(30, 30, 30, 0.7)",
+                                        "padding": "15px",
+                                        "borderRadius": "10px",
+                                        "whiteSpace": "pre-wrap",
+                                        "fontFamily": "monospace"
+                                    }
+                                )
+                            ],
+                            style={"margin": "20px 10px"}
                         ),
                     ],
                     style={
@@ -313,22 +404,14 @@ app.layout = html.Div(
         Input("nation-filter", "value"),
         Input("star-type-filter", "value"),
         Input("habitable-filter", "value"),
+        Input("population-filter", "value"),
         Input("reset-button", "n_clicks"),
     ],
 )
 def update_figure(selected_nations, selected_star_types, habitable_only,
-                  n_clicks):
+                  population_filter, n_clicks):
     """
     Updates the 3D starmap visualization based on filter selections.
-
-    Args:
-        selected_nations (list): List of selected nation names
-        selected_star_types (list): List of selected star types
-        habitable_only (list): List containing 'yes' if the habitable filter is checked
-        n_clicks (int): Number of times the reset button has been clicked
-
-    Returns:
-        dict: Updated figure configuration
     """
     # Create a filter object
     star_filter = StarSystemFilter()
@@ -358,6 +441,32 @@ def update_figure(selected_nations, selected_star_types, habitable_only,
             )
         )
 
+    # Apply population filters if selected
+    if population_filter:
+        if "primary_hub" in population_filter:
+            star_filter.add_filter(
+                "primary_hub",
+                lambda star: any(
+                    hasattr(planet,
+                            'colony') and planet.colony.classification == "Primary Hub"
+                    for planet in star.planetary_system.celestial_bodies
+                    if
+                    planet.body_type == "Planet" and hasattr(planet, 'colony')
+                )
+            )
+
+        if "large_colonies" in population_filter:
+            star_filter.add_filter(
+                "large_colonies",
+                lambda star: any(
+                    hasattr(planet,
+                            'colony') and planet.colony.current_population >= 1000000
+                    for planet in star.planetary_system.celestial_bodies
+                    if
+                    planet.body_type == "Planet" and hasattr(planet, 'colony')
+                )
+            )
+
     # Generate the plot with applied filters
     fig = plot_generator.plot(html=False, return_fig=True,
                               star_filter=star_filter)
@@ -377,6 +486,44 @@ def update_figure(selected_nations, selected_star_types, habitable_only,
     )
 
     return fig
+
+
+@app.callback(
+    Output("population-stats", "children"),
+    [Input("starmap-3d", "figure")],
+    # This will trigger when the figure updates
+    prevent_initial_call=True
+)
+def update_population_stats(_):
+    """Update the population statistics display"""
+    if hasattr(starmap, 'population_model'):
+        return starmap.get_population_summary()
+    else:
+        return "No population data available."
+
+
+# Add a callback for time advancement:
+@app.callback(
+    [Output("time-advance-info", "children"),
+     Output("population-stats", "children", allow_duplicate=True)],
+    [Input("time-advance-button", "n_clicks")],
+    [State("time-advance-input", "value")],
+    prevent_initial_call=True
+)
+def advance_time(n_clicks, years):
+    """Advance the simulation time"""
+    if not n_clicks or not years:
+        return no_update, no_update
+
+    result = starmap.advance_time(years)
+
+    # Update the population stats
+    if hasattr(starmap, 'population_model'):
+        stats = starmap.get_population_summary()
+    else:
+        stats = "No population data available."
+
+    return result, stats
 
 
 @app.callback(
@@ -405,7 +552,8 @@ def update_camera_position(relayoutData):
     [
         Output("nation-filter", "value"),
         Output("star-type-filter", "value"),
-        Output("habitable-filter", "value")
+        Output("habitable-filter", "value"),
+        Output("population-filter", "value")
     ],
     Input("reset-button", "n_clicks"),
     prevent_initial_call=True

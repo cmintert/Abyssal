@@ -3,3 +3,5 @@ plotly~=6.0.1
 dash>=2.16.1
 openai~=1.75.0
 pytest~=8.3.5
+
+networkx~=3.4.2

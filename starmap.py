@@ -5,9 +5,11 @@ import json
 from plotly.offline import plot
 from map_components import Nation, Star, Planetary_System, MineralMap
 from Utility import scale_values_to_range, insert_linebreaks, RareMinerals
+from population_model import PopulationModel
 from random_generator import RandomGenerator
 
 import config
+from transport_network import TransportNetwork
 
 random_generator = RandomGenerator.get_instance()
 
@@ -196,19 +198,6 @@ class Starmap:
         self.write_to_json(
             self.get_serialized_asteroid_belts(), "json_data/asteroid_belt_data.json"
         )
-
-    def write_all_to_json(self):
-        """
-        Writes all data to JSON files.
-
-        Returns:
-            None
-        """
-        self.write_stars_to_json()
-        self.write_nations_to_json()
-        self.write_planetary_systems_to_json()
-        self.write_planets_to_json()
-        self.write_asteroid_belts_to_json()
 
     def generate_mineral_maps(self, area=500, number=6):
         """
@@ -603,6 +592,113 @@ class Starmap:
         print("-----")
         return ""
 
+    def generate_transport_network(self, stellar_projector_range=20.0,
+                                   ship_projector_range=1.0,
+                                   stellar_projector_density=0.2):
+        """
+        Generate the interstellar transportation network.
+
+        Args:
+            stellar_projector_range (float): Maximum jump distance for stellar projectors in LY
+            ship_projector_range (float): Maximum jump distance for ship projectors in LY
+            stellar_projector_density (float): Fraction of stars with stellar projectors
+
+        Returns:
+            TransportNetwork: The generated transport network
+        """
+        self.transport_network = TransportNetwork(
+            self,
+            stellar_projector_range=stellar_projector_range,
+            ship_projector_range=ship_projector_range,
+            stellar_projector_density=stellar_projector_density
+        )
+        self.transport_network.generate_networks()
+
+        return self.transport_network
+
+    def generate_colony_populations(self, current_year=2675):
+        """
+        Generate human colony populations for all habitable planets.
+
+        This must be called after generate_transport_network().
+
+        Args:
+            current_year (int): Current year in the Abyssal universe
+
+        Returns:
+            PopulationModel: The generated population model
+        """
+        # Check if transport network exists
+        if not hasattr(self, 'transport_network'):
+            raise ValueError(
+                "Transport network must be generated before populations")
+
+        self.population_model = PopulationModel(self, self.transport_network,
+                                                current_year)
+        self.population_model.generate_populations()
+
+        return self.population_model
+
+    def get_population_summary(self):
+        """
+        Get a summary of human population statistics.
+
+        Returns:
+            str: Summary text of population statistics
+        """
+        if hasattr(self, 'population_model'):
+            return self.population_model.get_population_summary()
+        else:
+            return "No population data available. Call generate_colony_populations() first."
+
+    def advance_time(self, years=10):
+        """
+        Advance the simulation time by the specified number of years.
+
+        Args:
+            years (int): Number of years to advance
+
+        Returns:
+            str: Message about the time advancement
+        """
+        if hasattr(self, 'population_model'):
+            return self.population_model.time_advance_simulation(years)
+        else:
+            return "No population data available. Call generate_colony_populations() first."
+
+    def write_population_data_to_json(self):
+        """
+        Write population data to a JSON file.
+
+        Returns:
+            None
+        """
+        if hasattr(self, 'population_model'):
+            self.population_model.save_population_data()
+            print("Population data written to json_data/population_data.json")
+        else:
+            print(
+                "No population data available. Call generate_colony_populations() first.")
+
+    def write_all_to_json(self):
+        """
+        Write all data to JSON files.
+
+        This overrides the existing write_all_to_json method to include population data.
+
+        Returns:
+            None
+        """
+        self.write_stars_to_json()
+        self.write_nations_to_json()
+        self.write_planetary_systems_to_json()
+        self.write_planets_to_json()
+        self.write_asteroid_belts_to_json()
+
+        # Write population data if available
+        if hasattr(self, 'population_model'):
+            self.write_population_data_to_json()
+
 
 class PlotGenerator:
     def __init__(self, starmap):
@@ -666,20 +762,138 @@ class PlotGenerator:
         trace_asteroid_belts = self.trace_asteroid_belts(stars_to_use)
         trace_planetary_system = self.trace_planetary_system(stars_to_use)
 
+        # Add population trace if population model exists
+        if hasattr(self.starmap, 'population_model'):
+            trace_populations = self.trace_populations(stars_to_use)
+        else:
+            trace_populations = None
+
         # Create layout for the plot
         layout = self.define_layout()
 
-        return self.create_figure(
-            layout,
+        # Create data list with all traces
+        data = [
+            trace_stars,
             trace_nations,
             trace_planets,
-            trace_stars,
             trace_planets_orbits,
             trace_asteroid_belts,
-            trace_planetary_system,
-            html=html,
-            return_fig=return_fig,
+            trace_planetary_system
+        ]
+
+        # Add population trace if it exists
+        if trace_populations:
+            data.append(trace_populations)
+
+        fig = go.Figure(data=data, layout=layout)
+        if return_fig:
+            return fig
+        if html:
+            plot(fig, filename="Abyssal_showcase.html", output_type="file")
+        fig.show()
+
+        return fig
+
+    def trace_populations(self, stars_to_use=None):
+        """
+        Create visual representation of human population on habitable planets.
+
+        Args:
+            stars_to_use (list, optional): List of stars to include in the trace
+
+        Returns:
+            go.Scatter3d: Plotly trace object representing populations
+        """
+        stars_to_plot = stars_to_use if stars_to_use is not None else self.starmap.stars
+
+        # Initialize trace data
+        population_x = []
+        population_y = []
+        population_z = []
+        population_sizes = []
+        population_colors = []
+        hover_texts = []
+
+        # Find all colonies
+        for star in stars_to_plot:
+            for body in star.planetary_system.celestial_bodies:
+                if body.body_type == "Planet" and hasattr(body, 'colony'):
+                    colony = body.colony
+
+                    # For visualization, use normalized orbit distance
+                    orbit = body.orbit
+                    offset = min(20, max(1,
+                                         orbit * 0.8))  # Scale orbit distances for visualization
+
+                    # Random angle for the position on the orbit
+                    angle = random_generator.uniform(0, 2 * np.pi)
+
+                    # Position the population indicator slightly offset from the planet
+                    population_x.append(star.x + offset * np.cos(angle))
+                    population_y.append(star.y + offset * np.sin(angle))
+                    population_z.append(star.z + 0.2)  # Slight offset in z-axis
+
+                    # Scale population sizes logarithmically
+                    if colony.current_population > 0:
+                        log_population = np.log10(colony.current_population)
+                        # Scale to reasonable marker sizes (5-25)
+                        size = 5 + (log_population / 10) * 20
+                        population_sizes.append(size)
+                    else:
+                        population_sizes.append(
+                            3)  # Minimal size for zero population
+
+                    # Color based on colony classification
+                    if colony.classification == "Primary Hub":
+                        color = "rgb(255, 0, 0)"  # Red
+                    elif colony.classification == "Primary Colony":
+                        color = "rgb(255, 140, 0)"  # Orange
+                    elif colony.classification == "Secondary Hub":
+                        color = "rgb(255, 215, 0)"  # Gold
+                    else:  # Outpost
+                        color = "rgb(255, 255, 255)"  # White
+
+                    population_colors.append(color)
+
+                    # Create hover text
+                    hover_text = (
+                        f"Planet {body.name}<br>"
+                        f"Population: {colony.get_formatted_population()}<br>"
+                        f"Colony Type: {colony.classification}<br>"
+                        f"Established: {colony.founding_year}<br>"
+                        f"Growth Rate: {colony.growth_rate * 100:.1f}% per year<br>"
+                        f"Habitability: {colony.habitability_score:.2f}"
+                    )
+                    hover_texts.append(hover_text)
+
+        # Create the trace
+        if not population_x:  # If no colonies, return an empty trace
+            return go.Scatter3d(
+                x=[], y=[], z=[],
+                mode="markers",
+                name="Human Colonies",
+                hoverinfo="text"
+            )
+
+        # Create visual representation of colonies
+        trace_populations = go.Scatter3d(
+            x=population_x,
+            y=population_y,
+            z=population_z,
+            mode="markers",
+            marker=dict(
+                size=population_sizes,
+                color=population_colors,
+                symbol="diamond",
+                opacity=0.7,
+                line=dict(width=1, color="rgb(50, 50, 50)")
+            ),
+            text=hover_texts,
+            name="Human Colonies",
+            hoverinfo="text"
         )
+
+        return trace_populations
 
     @staticmethod
     def create_figure(
