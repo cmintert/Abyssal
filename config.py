@@ -25,6 +25,10 @@ DEFAULT_NATION_COLORS = [
     (0.2, 0.2, 0.8),
     (0.8, 0.8, 0.2),
 ]
+
+NATION_OPACITY= 0.05
+NATION_DESATURATION = 0.5
+
 DEFAULT_NATION_ORIGINS = [
     {"x": -200, "y": 100, "z": -100},
     {"x": -50, "y": 100, "z": 90},

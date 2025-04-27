@@ -122,7 +122,7 @@ The included Dash application provides an interactive web interface:
 To generate a new star map programmatically:
 
 ```python
-from abyssal_map import Starmap
+from starmap import Starmap
 
 # Create a new starmap
 my_map = Starmap()
@@ -133,7 +133,8 @@ my_map.generate_star_systems(number_of_stars=500)
 # Generate nations
 my_map.generate_nations(
   name_set=["Empire", "Republic", "Federation"],
-  nation_colour_set=[(0.8, 0.2, 0.2), (0.2, 0.8, 0.2), (0.2, 0.2, 0.8)],
+  nation_colour_set=[(0.8, 0.2, 0.2), (0.2, 0.8, 0.2),
+                     (0.2, 0.2, 0.8)],
   origin_set=[{"x": 0, "y": 0, "z": 0},
               {"x": 100, "y": 100, "z": 100},
               {"x": -100, "y": -100, "z": -100}],

@@ -3,7 +3,7 @@ import os
 import json
 from map_components import Nation, Star, Planetary_System, Planet, AsteroidBelt, \
     MineralMap
-from abyssal_map import Starmap
+from starmap import Starmap
 
 
 class StarmapReader:

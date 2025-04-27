@@ -1030,7 +1030,38 @@ class PlotGenerator:
                 star_to_nation[star] = nation.name  # Map star to nation name
 
         # Generate hover text for each star, defaulting to 'Unknown' if the star isn't in the dictionary
-        hovertext = [star_to_nation.get(star, "Unknown") for star in stars_to_plot]
+        hovertext = [star_to_nation.get(star, "Unknown") for star in
+                     stars_to_plot]
+
+        # Convert RGB colors to desaturated RGBA with explicit opacity
+        colors = []
+        for star in stars_to_plot:
+            # Find the nation color for this star
+            nation_color = next(
+                (
+                    nation.nation_colour
+                    for nation in self.starmap.nations
+                    if star in nation.nation_stars
+                ),
+                (1, 1, 1)  # white default
+            )
+
+            # Desaturate the color by reducing color intensity and adding some gray
+            if len(nation_color) == 3:  # It's an RGB tuple
+                # Desaturation factor (0.5 means 50% desaturated)
+                desaturation = config.NATION_DESATURATION
+
+                # Calculate desaturated values by mixing with gray
+                r = nation_color[0] * (1 - desaturation) + 0.5 * desaturation
+                g = nation_color[1] * (1 - desaturation) + 0.5 * desaturation
+                b = nation_color[2] * (1 - desaturation) + 0.5 * desaturation
+
+                # Convert to RGBA string with opacity
+                rgba_color = f"rgba({int(r * 255)}, {int(g * 255)}, {int(b * 255)}, 0.2)"
+            else:
+                rgba_color = "rgba(128, 128, 128, 0.2)"  # Fallback to gray with opacity
+
+            colors.append(rgba_color)
 
         # Create the Scatter3d trace
         trace_nations = go.Scatter3d(
@@ -1040,18 +1071,8 @@ class PlotGenerator:
             mode="markers",
             marker=dict(
                 size=30,
-                color=[
-                    next(
-                        (
-                            nation.nation_colour
-                            for nation in self.starmap.nations
-                            if star in nation.nation_stars
-                        ),
-                        "white",
-                    )
-                    for star in stars_to_plot
-                ],
-                opacity=0.2,
+                color=colors,
+                # Remove the opacity property as it's now in the color
             ),
             hovertext=hovertext,
             name="Nations",

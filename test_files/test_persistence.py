@@ -1,6 +1,6 @@
 # test_persistence.py
 from persistence import StarmapReader, StarmapWriter
-from abyssal_map import Starmap
+from starmap import Starmap
 import config
 
 

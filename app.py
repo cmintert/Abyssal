@@ -7,7 +7,7 @@ import json
 from dash import no_update
 
 import config
-from abyssal_map import Starmap, PlotGenerator, StarSystemFilter
+from starmap import Starmap, PlotGenerator, StarSystemFilter
 from persistence import StarmapReader, StarmapWriter
 
 
