@@ -1417,7 +1417,7 @@ class PlotGenerator:
             line=dict(
                 color='cyan',
                 width=2,
-                dash='dash'  # Make the lines dashed to distinguish from orbits
+                dash='solid'  # Solid line for stellar projectors
             ),
             opacity=0.9,
             name='Stellar Projectors',

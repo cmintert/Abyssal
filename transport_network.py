@@ -61,11 +61,8 @@ class TransportNetwork:
         """
         Generate the primary network of stellar projector stations.
 
-        This creates a network where:
-        1. Sol (0,0,0) always has a stellar projector
-        2. ~20% of habitable planets get stellar projectors
-        3. Important systems (nation capitals, etc.) are prioritized
-        4. Stellar projectors can connect if within 20 LY of each other
+        Assign projectors to stars that have habitable stars within projector range.
+        Stellar projectors can connect if within stellar_projector_range of each other.
         """
         # Add all stars as nodes to the primary network
         for star in self.starmap.stars:
@@ -74,42 +71,17 @@ class TransportNetwork:
                                           star=star,
                                           has_projector=False)
 
-        # Identify habitable systems
-        habitable_systems = []
+        # Identify habitable stars
+        habitable_stars = []
         for star in self.starmap.stars:
             has_habitable_planet = any(
                 body.body_type == "Planet" and body.habitable
                 for body in star.planetary_system.celestial_bodies
             )
-
             if has_habitable_planet:
-                # Sort habitable systems by importance
-                importance = 0
+                habitable_stars.append(star)
 
-                # Nation capitals get priority
-                if star.nation and star.nation.origin['x'] == star.x and \
-                        star.nation.origin['y'] == star.y and \
-                        star.nation.origin['z'] == star.z:
-                    importance += 10
-
-                # Systems closer to Sol get priority
-                dist_to_sol = np.sqrt(star.x ** 2 + star.y ** 2 + star.z ** 2)
-                importance += max(0, 500 - dist_to_sol) / 50
-
-                # G-Type stars (like Sol) get priority for stellar projectors
-                if star.spectral_class == "G-Type":
-                    importance += 3
-                elif star.spectral_class == "K-Type":
-                    importance += 2
-                elif star.spectral_class == "M-Type":
-                    importance += 1
-
-                habitable_systems.append((star, importance))
-
-        # Sort by importance (highest first)
-        habitable_systems.sort(key=lambda x: x[1], reverse=True)
-
-        # Find the star closest to Sol and ensure it has a projector
+        # Find Sol (star closest to origin)
         sol_star = None
         min_dist = float('inf')
         for star in self.starmap.stars:
@@ -122,19 +94,32 @@ class TransportNetwork:
         if sol_star:
             self.primary_network.nodes[sol_star.id]['has_projector'] = True
 
-        # Assign stellar projectors based on importance
-        num_projectors = int(
-            len(self.starmap.stars) * self.stellar_projector_density)
+        # Assign projectors to stars that have habitable stars within projector range
         projector_systems = [sol_star.id] if sol_star else []
 
-        for star, _ in habitable_systems:
-            if len(projector_systems) >= num_projectors:
-                break
+        for star in self.starmap.stars:
+            # Skip stars that already have projectors
+            if star.id in projector_systems:
+                continue
 
-            # Only add if not already included
-            if star.id not in projector_systems:
-                self.primary_network.nodes[star.id]['has_projector'] = True
-                projector_systems.append(star.id)
+            # Check if this star has any habitable stars within projector range
+            for habitable_star in habitable_stars:
+                # Skip if comparing to itself
+                if star.id == habitable_star.id:
+                    continue
+
+                # Calculate distance to habitable star
+                dist = np.sqrt(
+                    (star.x - habitable_star.x) ** 2 +
+                    (star.y - habitable_star.y) ** 2 +
+                    (star.z - habitable_star.z) ** 2
+                )
+
+                # If within range, assign a projector and break
+                if dist <= self.stellar_projector_range:
+                    self.primary_network.nodes[star.id]['has_projector'] = True
+                    projector_systems.append(star.id)
+                    break
 
         # Connect stellar projectors if within range
         projector_nodes = [node for node, data in
