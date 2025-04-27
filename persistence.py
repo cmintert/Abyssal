@@ -25,37 +25,22 @@ class StarmapReader:
 
     def load_starmap(self):
         """Loads and reconstructs a complete starmap from JSON files"""
+        # Create mineral maps and then load the rest of the data
         starmap = Starmap()
+        starmap.generate_mineral_maps()
 
-        # Load stars
+        # Load data from JSON files
         star_data = self.read_from_json("json_data/star_data.json")
-        if not star_data:
-            return None
-
-        # Load nations
         nation_data = self.read_from_json("json_data/nation_data.json")
-        if not nation_data:
-            return None
-
-        # Load planetary systems
         planetary_system_data = self.read_from_json(
             "json_data/planetary_system_data.json")
-        if not planetary_system_data:
-            return None
-
-        # Load planets
         planet_data = self.read_from_json("json_data/planet_data.json")
-        if not planet_data:
-            return None
-
-        # Load asteroid belts
         asteroid_belt_data = self.read_from_json(
             "json_data/asteroid_belt_data.json")
-        if not asteroid_belt_data:
-            return None
 
-        # Create mineral maps first
-        starmap.generate_mineral_maps()
+        if not all([star_data, nation_data, planetary_system_data, planet_data,
+                    asteroid_belt_data]):
+            return None
 
         # Create nation objects first (stars reference nations)
         for nation_info in nation_data:
@@ -66,7 +51,15 @@ class StarmapReader:
             )
             nation.current_radius = nation_info["current_radius"]
             nation.expansion_rate = nation_info["expansion_rate"]
-            nation.additional_info = nation_info["additional_info"]
+
+            # Handle the new fields with backward compatibility
+            if "autogen_description" in nation_info:
+                nation.autogen_description = nation_info["autogen_description"]
+            else:
+                # Generate a new description if not present in the data
+                nation.generate_description()
+
+            nation.additional_info = nation_info.get("additional_info", None)
             starmap.nations.append(nation)
 
         # Create star objects with placeholder planetary systems
@@ -91,7 +84,15 @@ class StarmapReader:
                 spectral_class=star_info["spectral_class"],
                 luminosity=star_info["luminosity"]
             )
-            star.additional_info = star_info["additional_info"]
+
+            # Handle the new fields with backward compatibility
+            if "autogen_description" in star_info:
+                star.autogen_description = star_info["autogen_description"]
+            else:
+                # Generate a new description if not present in the data
+                star.generate_description()
+
+            star.additional_info = star_info.get("additional_info", None)
 
             # Create an empty planetary system for now
             star.planetary_system = Planetary_System(star)
@@ -111,7 +112,22 @@ class StarmapReader:
             if star:
                 # Set orbital data
                 star.planetary_system.orbits = system_info["orbits"]
-                star.planetary_system.description = system_info["description"]
+
+                # Handle the new fields with backward compatibility
+                if "autogen_description" in system_info:
+                    star.planetary_system.autogen_description = system_info[
+                        "autogen_description"]
+                else:
+                    # Use the description field or generate a new one
+                    if "description" in system_info:
+                        star.planetary_system.autogen_description = system_info[
+                            "description"]
+                    else:
+                        # Generate a new description if not present in the data
+                        star.planetary_system.generate_description()
+
+                star.planetary_system.additional_info = system_info.get(
+                    "additional_info", None)
 
         # Process planets data and add to their stars
         for planet_info in planet_data:
@@ -127,7 +143,46 @@ class StarmapReader:
                 planet.name = planet_info["name"]
                 planet.body_type = planet_info["body_type"]
                 planet.orbit = planet_info["orbit"]
-                planet.additional_info = planet_info["additional_info"]
+
+                # Handle the new fields with backward compatibility
+                if "autogen_description" in planet_info:
+                    planet.autogen_description = planet_info[
+                        "autogen_description"]
+                else:
+                    # If no autogen_description, use the additional_info field as the autogen_description
+                    # and set additional_info to None (to avoid duplicating the description)
+                    planet.autogen_description = planet_info.get(
+                        "additional_info", None)
+                    # Only clear additional_info if it matches the auto-generated content
+                    if planet.autogen_description and planet.autogen_description.startswith(
+                            f"Planet {planet.name} is a"):
+                        # This appears to be an auto-generated description that was stored in additional_info
+                        planet_info["additional_info"] = None
+
+                    # If still no description, generate a new one
+                    if not planet.autogen_description:
+                        # We need to set all the properties first
+                        planet.mass = planet_info["mass"]
+                        planet.density = planet_info["density"]
+                        planet.radius = planet_info["radius"]
+                        planet.composition = planet_info["composition"]
+                        planet.orbital_time = planet_info["orbital_time"]
+                        planet.rotation_period = planet_info["rotation_period"]
+                        planet.tilt = planet_info["tilt"]
+                        planet.moons = planet_info["moons"]
+                        planet.atmosphere = planet_info["atmosphere"]
+                        planet.surface_temperature = planet_info[
+                            "surface_temperature"]
+                        planet.presence_of_water = planet_info[
+                            "presence_of_water"]
+                        planet.gravity = planet_info["gravity"]
+                        planet.habitable = planet_info["habitable"]
+
+                        # Now we can generate the description
+                        planet.autogen_description = planet.create_description()
+
+                planet.additional_info = planet_info.get("additional_info",
+                                                         None)
 
                 # Set Planet-specific properties
                 planet.mass = planet_info["mass"]
@@ -161,7 +216,29 @@ class StarmapReader:
                 belt.name = belt_info["name"]
                 belt.body_type = belt_info["body_type"]
                 belt.orbit = belt_info["orbit"]
-                belt.additional_info = belt_info["additional_info"]
+
+                # Handle the new fields with backward compatibility
+                if "autogen_description" in belt_info:
+                    belt.autogen_description = belt_info["autogen_description"]
+                else:
+                    # If no description, create one
+                    belt_description = f"Asteroid Belt {belt.name} orbiting {star.name[0]} at {belt.orbit:.2f} AU. "
+
+                    # Set AsteroidBelt-specific properties so we can generate a description
+                    belt.density = belt_info["density"]
+                    belt.minerals = belt_info["minerals"]
+
+                    belt_description += f"The belt density is '{belt.density}'. "
+
+                    mineral_composition = "Mineral Composition: "
+                    for mineral in belt.minerals:
+                        for key, value in mineral.items():
+                            mineral_composition += f"{key}: {value}%, "
+
+                    belt_description += mineral_composition
+                    belt.autogen_description = belt_description
+
+                belt.additional_info = belt_info.get("additional_info", None)
 
                 # Set AsteroidBelt-specific properties
                 belt.density = belt_info["density"]

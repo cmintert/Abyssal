@@ -13,17 +13,20 @@ SPECTRAL_CLASSES_LUM_MASS_RATIO = {
 
 class Nation:
     def __init__(
-        self,
-        name,
-        origin=None,
-        nation_colour=None,
-        space_boundary=500,
-        expansion_rate=0.5,
+            self,
+            name,
+            origin=None,
+            nation_colour=None,
+            space_boundary=500,
+            expansion_rate=0.5,
+            autogen_description=None,
+            additional_info=None,
     ):
         self.name = name
         self.current_radius = 0
         self.nation_stars = []
-        self.additional_info = None
+        self.autogen_description = autogen_description
+        self.additional_info = additional_info
         self.expansion_rate = expansion_rate
 
         if nation_colour is None:
@@ -46,6 +49,25 @@ class Nation:
         else:
             self.origin = origin
 
+        # Generate description if none provided
+        if self.autogen_description is None:
+            self.generate_description()
+
+    def generate_description(self):
+        """Generate a description of the nation."""
+        description = f"The {self.name} nation with origin at coordinates "
+        description += f"x={self.origin['x']:.2f}, y={self.origin['y']:.2f}, z={self.origin['z']:.2f}. "
+        description += f"Current radius of influence: {self.current_radius:.2f}. "
+        description += f"Expansion rate: {self.expansion_rate:.2f}. "
+
+        if self.nation_stars:
+            description += f"Controls {len(self.nation_stars)} star systems."
+        else:
+            description += "Currently controls no star systems."
+
+        self.autogen_description = description
+        return description
+
     def expand_influence(self):
         """Expand the nation's sphere of influence based on its expansion rate."""
         self.current_radius += self.expansion_rate
@@ -55,7 +77,6 @@ class Nation:
         self.additional_info = info
 
     def serialize_nation_to_dict(self):
-
         # stars in nation
         included_stars_id = []
         for star in self.nation_stars:
@@ -67,6 +88,7 @@ class Nation:
             "expansion_rate": self.expansion_rate,
             "nation_colour": self.nation_colour,
             "nation_stars": included_stars_id,
+            "autogen_description": self.autogen_description,
             "additional_info": self.additional_info,
         }
 
@@ -86,8 +108,10 @@ class SmallBody:
         the type of the small body (e.g., "Planet", "Moon", "Asteroid", etc.)
     orbit : float
         the distance of the small body from the star in AU (astronomical units)
+    autogen_description : str
+        auto-generated description of the small body
     additional_info : str
-        additional information about the small body
+        additional information about the small body (user-provided)
     star : Star
         the star that the small body orbits
 
@@ -99,11 +123,12 @@ class SmallBody:
         Returns the orbit number of the small body, starting with 1 for the closest orbit in the system.
     """
 
-    def __init__(self, name, star, body_type=None, orbit=None, additional_info=None):
+    def __init__(self, name, star, body_type=None, orbit=None, autogen_description=None, additional_info=None):
         self.name = name
         self.body_type = body_type  # Planet, Moon, Asteroid, etc.
         self.orbit = orbit  # Distance from the star in AU
-        self.additional_info = additional_info
+        self.autogen_description = autogen_description  # Auto-generated description
+        self.additional_info = additional_info  # User-provided information
         self.star = star
         self.hill_sphere_radius = 0
 
@@ -117,6 +142,7 @@ class SmallBody:
             "body_type": self.body_type,
             "orbit": self.orbit,
             "star": self.star.serialize_star_to_dict(),
+            "autogen_description": self.autogen_description,
             "additional_info": self.additional_info,
         }
 
@@ -184,20 +210,22 @@ class Star:
     """
 
     def __init__(
-        self,
-        id,
-        starmap,
-        name=None,
-        nation=None,
-        x=None,
-        y=None,
-        z=None,
-        r=None,
-        theta=None,
-        phi=None,
-        spectral_class=None,
-        luminosity=None,
-        planetary_system=None,
+            self,
+            id,
+            starmap,
+            name=None,
+            nation=None,
+            x=None,
+            y=None,
+            z=None,
+            r=None,
+            theta=None,
+            phi=None,
+            spectral_class=None,
+            luminosity=None,
+            planetary_system=None,
+            autogen_description=None,
+            additional_info=None,
     ):
         self.id = id
         self.star_map = starmap
@@ -206,7 +234,8 @@ class Star:
         else:
             self.name = name
         self.nation = nation
-        self.additional_info = None
+        self.autogen_description = autogen_description
+        self.additional_info = additional_info
         # Cartesian coordinates
         self.x = x
         self.y = y
@@ -229,6 +258,23 @@ class Star:
         elif x is not None and y is not None and z is not None:
             self.convert_to_spherical()
 
+        # Generate an auto description if not provided
+        if self.autogen_description is None and self.spectral_class is not None and self.luminosity is not None:
+            self.generate_description()
+
+    def generate_description(self):
+        """Generate a description of the star based on its properties."""
+        description = f"Star {self.name[0] if isinstance(self.name, list) else self.name} "
+        description += f"of spectral class {self.spectral_class}. "
+        description += f"Luminosity: {self.luminosity:.2f} solar luminosities. "
+        description += f"Mass: {self.mass:.2f} solar masses. "
+
+        if self.nation:
+            description += f"Under control of the {self.nation.name} nation. "
+
+        self.autogen_description = description
+        return description
+
     def add_additional_info(self, info):
         """Add additional information to the star."""
         self.additional_info = info
@@ -247,6 +293,7 @@ class Star:
             "spectral_class": self.spectral_class,
             "luminosity": self.luminosity,
             "mass": self.mass,
+            "autogen_description": self.autogen_description,
             "additional_info": self.additional_info,
         }
 
@@ -506,7 +553,8 @@ class Planet(SmallBody):
         self.orbital_time = self.generate_orbital_time()
 
         # Generate a description of the planet
-        self.additional_info = self.create_description()
+        self.autogen_description = self.create_description()
+        self.additional_info = ""
 
         self.check_attributes()
 
@@ -875,8 +923,20 @@ class AsteroidBelt(SmallBody):
         self.body_type = "Asteroid Belt"
         self.density = self.generate_density()
         self.minerals = self.generate_minerals()
-        # Calculate the density of the asteroid belt
-        # self.additional_info = self.generate_density()
+
+        # Generate auto description
+        belt_description = f"Asteroid Belt {self.return_orbit_number()} orbiting {star.name[0]} at {orbit:.2f} AU. "
+        belt_description += f"The belt density is '{self.density}'. "
+
+        mineral_composition = "Mineral Composition: "
+        for mineral in self.minerals:
+            for key, value in mineral.items():
+                mineral_composition += f"{key}: {value}%, "
+
+        belt_description += mineral_composition
+
+        self.autogen_description = belt_description
+        self.additional_info = ""
 
         return self
 
@@ -951,11 +1011,13 @@ class AsteroidBelt(SmallBody):
 
 
 class Planetary_System:
-    def __init__(self, star, orbits=[], celestial_bodies=None):
+    def __init__(self, star, orbits=[], celestial_bodies=None,
+                 autogen_description=None, additional_info=None):
         self.star = star
         self.orbits = orbits
         self.celestial_bodies = celestial_bodies if celestial_bodies is not None else []
-        self.description = None
+        self.autogen_description = autogen_description
+        self.additional_info = additional_info
 
     def __str__(self):
         return f"Star: {self.star.name}, Planets: {', '.join([planet.name for planet in self.planets])}"
@@ -965,9 +1027,11 @@ class Planetary_System:
             "star": self.star.serialize_star_to_dict(),
             "orbits": self.orbits,
             "celestial_bodies": [
-                body.serialize_small_body_to_dict() for body in self.celestial_bodies
+                body.serialize_small_body_to_dict() for body in
+                self.celestial_bodies
             ],
-            "description": self.description,
+            "autogen_description": self.autogen_description,
+            "additional_info": self.additional_info,
         }
         return data
 
@@ -1051,10 +1115,12 @@ class Planetary_System:
             description += f"The system has {orbit_count} distinct {orbit_word}, ranging from {min(self.orbits):.2f} AU to {max(self.orbits):.2f} AU. "
         if celestial_body_count > 0:
             planet_count = sum(
-                1 for body in self.celestial_bodies if body.body_type == "Planet"
+                1 for body in self.celestial_bodies if
+                body.body_type == "Planet"
             )
             asteroid_belt_count = sum(
-                1 for body in self.celestial_bodies if body.body_type == "Asteroid Belt"
+                1 for body in self.celestial_bodies if
+                body.body_type == "Asteroid Belt"
             )
 
             # Handling singular/plural for planets
@@ -1065,12 +1131,12 @@ class Planetary_System:
             )
 
             description += f"The system contains {planet_count} {planet_word} and {asteroid_belt_count} {asteroid_belt_word}. "
-            # Add a list of all celestial bodies and theit orbits
+            # Add a list of all celestial bodies and their orbits
             description += "The celestial bodies in the system are: "
             for body in self.celestial_bodies:
                 description += f"{body.name} at {body.orbit:.2f} AU, "
 
-        self.description = description
+        self.autogen_description = description
         return description
 
     def assembel_gpt_data(self):

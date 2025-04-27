@@ -826,7 +826,7 @@ class PlotGenerator:
         planet_mass = []
         planet_colors = []
         planet_names = []
-        planet_additional_info = []
+        planet_hover_texts = []
 
         # Get all orbits and normalize them
         all_planets = [
@@ -856,13 +856,16 @@ class PlotGenerator:
                 offset = normalized_orbits[orbit_index]
                 orbit_index += 1
 
-                # gather additional info
-                additional_info = planet.additional_info
-                if additional_info is not None:
-                    additional_info = insert_linebreaks(
-                        additional_info, max_line_length=50
-                    )
-                planet_additional_info.append(additional_info)
+                # Create hover text using autogen_description with additional_info if available
+                hover_text = planet.autogen_description
+                if planet.additional_info:
+                    hover_text += "<br><br>Additional Notes:<br>" + planet.additional_info
+
+                if hover_text is not None:
+                    hover_text = insert_linebreaks(hover_text,
+                                                   max_line_length=50)
+
+                planet_hover_texts.append(hover_text)
 
                 planet_color = "lightgrey"  # Default color for all celestial bodies
                 if planet.body_type == "Planet":
@@ -900,7 +903,7 @@ class PlotGenerator:
             ),
             text=[
                 f"{name}: {info}"
-                for name, info in zip(planet_names, planet_additional_info)
+                for name, info in zip(planet_names, planet_hover_texts)
             ],
             name="trace_planets",
             hoverinfo="text",
@@ -962,15 +965,16 @@ class PlotGenerator:
                         asteroid_belt_y.append(star.y + offset * np.sin(angle))
                         asteroid_belt_z.append(star.z)
 
-                        # Add the mineral composition to the hover_texts
-                        mineral_composition = "Mineral Composition: <br>"
-                        for mineral in belt.minerals:
-                            for key, value in mineral.items():
-                                mineral_composition += f"{key}: {value} %<br>"
+                        # Use autogen_description with additional_info if available
+                        hover_text = belt.autogen_description
+                        if belt.additional_info:
+                            hover_text += "<br><br>Additional Notes:<br>" + belt.additional_info
 
-                        hover_texts.append(
-                            f'{belt.name}<br><br>The belt density is "{belt.density}"<br><br>{mineral_composition}'
-                        )
+                        if hover_text is not None:
+                            hover_text = insert_linebreaks(hover_text,
+                                                           max_line_length=50)
+
+                        hover_texts.append(hover_text)
 
         # Create trace for the planetary dots
         trace_asteroid_belts = go.Scatter3d(
@@ -1054,7 +1058,11 @@ class PlotGenerator:
 
         descriptions = []
         for star in stars_to_plot:
-            description = star.planetary_system.description
+            # Use autogen_description with additional_info if available
+            description = star.planetary_system.autogen_description
+            if star.planetary_system.additional_info:
+                description += "<br><br>Additional Notes:<br>" + star.planetary_system.additional_info
+
             description = insert_linebreaks(description, max_line_length=50)
             descriptions.append(description)
 
