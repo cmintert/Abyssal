@@ -1190,7 +1190,7 @@ class MineralMap:
         Generate a random number of zone points for the mineral map.
         """
         zone_points = []
-        for i in range(number):
+        for _ in range(number):
             x = np.random.randint(-area, area)
             y = np.random.randint(-area, area)
             z = np.random.randint(-area, area)

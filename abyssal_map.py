@@ -5,8 +5,11 @@ import json
 from plotly.offline import plot
 from map_components import Nation, Star, Planetary_System, MineralMap
 from Utility import scale_values_to_range, insert_linebreaks, RareMinerals
+from random_generator import RandomGenerator
 
 import config
+
+random_generator = RandomGenerator.get_instance()
 
 
 class StarSystemFilter:
@@ -32,6 +35,7 @@ class StarSystemFilter:
         for filter_name, filter_function in self.active_filters.items():
             filtered_stars = list(filter(filter_function, filtered_stars))
         return filtered_stars
+
 
 # Generate stars
 class Starmap:
@@ -266,7 +270,11 @@ class Starmap:
         # Add noise and stretch to star locations after all stars are generated
         # This distorts the star locations to create a more realistic distribution
         self.star_location_noise(config.STAR_LOCATION_NOISE)
-        self.star_location_stretch(config.STAR_LOCATION_STRETCH[0], config.STAR_LOCATION_STRETCH[1], config.STAR_LOCATION_STRETCH[2])
+        self.star_location_stretch(
+            config.STAR_LOCATION_STRETCH[0],
+            config.STAR_LOCATION_STRETCH[1],
+            config.STAR_LOCATION_STRETCH[2],
+        )
 
     @staticmethod
     def generate_orbits_for_star(
@@ -283,7 +291,9 @@ class Starmap:
         Returns:
             None
         """
-        orbits_count = np.random.randint(1, number_of_orbits + 1)
+
+        orbits_count = random_generator.randint(1, number_of_orbits + 1)
+
         current_star.planetary_system.generate_orbits(
             include_habitable_zone, num_orbits=orbits_count
         )
@@ -324,7 +334,7 @@ class Starmap:
         Returns:
             float: Random luminosity value
         """
-        luminosity = np.random.uniform(*self.spectral_classes[spectral_class])
+        luminosity = random_generator.uniform(*self.spectral_classes[spectral_class])
         return luminosity
 
     def random_spectral_class(self, include_habitable_zone=True):
@@ -340,7 +350,8 @@ class Starmap:
         if include_habitable_zone:
             # choose only G K or M Type stars
             useable_spectral_classes = ["G-Type", "K-Type", "M-Type"]
-            spectral_class = np.random.choice(
+
+            spectral_class = random_generator.choice(
                 useable_spectral_classes,
                 p=[
                     0.3,
@@ -348,11 +359,13 @@ class Starmap:
                     0.4,
                 ],  # shifting distribution to G and K type stars, more like SOL
             )
+
         else:
-            spectral_class = np.random.choice(
+            spectral_class = random_generator.choice(
                 list(self.spectral_classes.keys()),
                 p=[0.00003, 0.13, 0.6, 3, 7.6, 12.1, 76.5],
             )
+
         return spectral_class
 
     @staticmethod
@@ -366,9 +379,11 @@ class Starmap:
         Returns:
             tuple: Spherical coordinates (phi, r, theta)
         """
-        r = map_radius * (np.random.uniform(0, 1) ** (1 / 3))
-        theta = 2 * np.random.uniform(0, 1) * np.pi
-        phi = np.arccos(2 * np.random.uniform(0, 1) - 1)
+
+        r = map_radius * (random_generator.uniform(0, 1) ** (1 / 3))
+        theta = 2 * random_generator.uniform(0, 1) * np.pi
+        phi = np.arccos(2 * random_generator.uniform(0, 1) - 1)
+
         return phi, r, theta
 
     def star_location_noise(self, noise=10):
@@ -384,9 +399,16 @@ class Starmap:
 
         for star in self.stars:
 
-            position_x = star.get_cartesian_position()[0] + np.random.uniform(-noise, noise)
-            position_y = star.get_cartesian_position()[1] + np.random.uniform(-noise, noise)
-            position_z = star.get_cartesian_position()[2] + np.random.uniform(-noise, noise)
+            position_x = star.get_cartesian_position()[0] + random_generator.uniform(
+                -noise, noise
+            )
+            position_y = star.get_cartesian_position()[1] + random_generator.uniform(
+                -noise, noise
+            )
+            position_z = star.get_cartesian_position()[2] + random_generator.uniform(
+                -noise, noise
+            )
+
             star.set_cartesian_position(position_x, position_y, position_z)
 
     def star_location_stretch(self, stretch_x=1, stretch_y=1, stretch_z=0.6):
@@ -408,7 +430,6 @@ class Starmap:
             position_y = star.get_cartesian_position()[1] * stretch_y
             position_z = star.get_cartesian_position()[2] * stretch_z
             star.set_cartesian_position(position_x, position_y, position_z)
-
 
     def generate_nations(
         self,
@@ -611,10 +632,12 @@ class PlotGenerator:
             # Add an annotation explaining that no stars match the filter
             fig.add_annotation(
                 text="No stars match the current filter criteria",
-                x=0.5, y=0.5,
-                xref="paper", yref="paper",
+                x=0.5,
+                y=0.5,
+                xref="paper",
+                yref="paper",
                 showarrow=False,
-                font=dict(size=20, color="white")
+                font=dict(size=20, color="white"),
             )
 
             if return_fig:
@@ -628,12 +651,11 @@ class PlotGenerator:
         masses = scale_values_to_range(
             [star.mass for star in stars_to_use],
             config.STAR_SIZE_RANGE[0],
-            config.STAR_SIZE_RANGE[1]
+            config.STAR_SIZE_RANGE[1],
         )
 
         luminosities = scale_values_to_range(
-            [star.luminosity for star in stars_to_use],
-            0, 1
+            [star.luminosity for star in stars_to_use], 0, 1
         )
 
         # Create traces with the filtered stars
@@ -661,15 +683,15 @@ class PlotGenerator:
 
     @staticmethod
     def create_figure(
-            layout,
-            trace_nations,
-            trace_planets,
-            trace_stars,
-            trace_planets_orbits,
-            trace_asteroid_belts,
-            trace_planetary_system,
-            html=True,
-            return_fig=False,
+        layout,
+        trace_nations,
+        trace_planets,
+        trace_stars,
+        trace_planets_orbits,
+        trace_asteroid_belts,
+        trace_planetary_system,
+        html=True,
+        return_fig=False,
     ):
         data = [
             trace_stars,
@@ -763,10 +785,11 @@ class PlotGenerator:
         if not all_planets:
             # Return empty trace if no planets
             return go.Scatter3d(
-                x=[], y=[], z=[],
+                x=[],
+                y=[],
+                z=[],
                 mode="lines",
-                line=dict(color=config.ORBIT_COLOR,
-                          width=config.ORBIT_LINE_WIDTH),
+                line=dict(color=config.ORBIT_COLOR, width=config.ORBIT_LINE_WIDTH),
                 opacity=config.ORBIT_OPACITY,
                 name="trace_planets_orbits",
                 hoverinfo="text",
@@ -799,8 +822,7 @@ class PlotGenerator:
                 temp_orbit_y.append(temp_orbit_y[0])
                 temp_orbit_z.append(temp_orbit_z[0])
                 # Append the orbit points to the main lists
-                orbit_x.extend(
-                    temp_orbit_x + [None])  # Add None to break the line
+                orbit_x.extend(temp_orbit_x + [None])  # Add None to break the line
                 orbit_y.extend(temp_orbit_y + [None])
                 orbit_z.extend(temp_orbit_z + [None])
 
@@ -838,7 +860,9 @@ class PlotGenerator:
         if not all_planets:
             # Return empty trace if no planets
             return go.Scatter3d(
-                x=[], y=[], z=[],
+                x=[],
+                y=[],
+                z=[],
                 mode="markers",
                 marker=dict(size=[], color=[]),
                 text=[],
@@ -859,11 +883,12 @@ class PlotGenerator:
                 # Create hover text using autogen_description with additional_info if available
                 hover_text = planet.autogen_description
                 if planet.additional_info:
-                    hover_text += "<br><br>Additional Notes:<br>" + planet.additional_info
+                    hover_text += (
+                        "<br><br>Additional Notes:<br>" + planet.additional_info
+                    )
 
                 if hover_text is not None:
-                    hover_text = insert_linebreaks(hover_text,
-                                                   max_line_length=50)
+                    hover_text = insert_linebreaks(hover_text, max_line_length=50)
 
                 planet_hover_texts.append(hover_text)
 
@@ -872,9 +897,10 @@ class PlotGenerator:
                     planet_color = "green" if planet.habitable else "lightgrey"
 
                 # Add the planet dot position and color
-                angle = np.random.uniform(
-                    0, 2 * np.pi
-                )  # Random angle for the position on the orbit
+
+                angle = random_generator.uniform(0, 2 * np.pi)
+
+                # Random angle for the position on the orbit
                 planet_x.append(star.x + offset * np.cos(angle))
                 planet_y.append(star.y + offset * np.sin(angle))
                 planet_z.append(star.z)
@@ -928,7 +954,9 @@ class PlotGenerator:
         if not all_planets:
             # Return empty trace if no planets
             return go.Scatter3d(
-                x=[], y=[], z=[],
+                x=[],
+                y=[],
+                z=[],
                 mode="markers",
                 marker=dict(size=1, color="grey"),
                 text=[],
@@ -957,7 +985,7 @@ class PlotGenerator:
                         scatter_number = 80
 
                     for _ in range(scatter_number + 1):
-                        angle = np.random.uniform(
+                        angle = random_generator.uniform(
                             0, 2 * np.pi
                         )  # Random angle for the position on the orbit
 
@@ -968,11 +996,14 @@ class PlotGenerator:
                         # Use autogen_description with additional_info if available
                         hover_text = belt.autogen_description
                         if belt.additional_info:
-                            hover_text += "<br><br>Additional Notes:<br>" + belt.additional_info
+                            hover_text += (
+                                "<br><br>Additional Notes:<br>" + belt.additional_info
+                            )
 
                         if hover_text is not None:
-                            hover_text = insert_linebreaks(hover_text,
-                                                           max_line_length=50)
+                            hover_text = insert_linebreaks(
+                                hover_text, max_line_length=50
+                            )
 
                         hover_texts.append(hover_text)
 
@@ -999,8 +1030,7 @@ class PlotGenerator:
                 star_to_nation[star] = nation.name  # Map star to nation name
 
         # Generate hover text for each star, defaulting to 'Unknown' if the star isn't in the dictionary
-        hovertext = [star_to_nation.get(star, "Unknown") for star in
-                     stars_to_plot]
+        hovertext = [star_to_nation.get(star, "Unknown") for star in stars_to_plot]
 
         # Create the Scatter3d trace
         trace_nations = go.Scatter3d(
@@ -1061,7 +1091,10 @@ class PlotGenerator:
             # Use autogen_description with additional_info if available
             description = star.planetary_system.autogen_description
             if star.planetary_system.additional_info:
-                description += "<br><br>Additional Notes:<br>" + star.planetary_system.additional_info
+                description += (
+                    "<br><br>Additional Notes:<br>"
+                    + star.planetary_system.additional_info
+                )
 
             description = insert_linebreaks(description, max_line_length=50)
             descriptions.append(description)

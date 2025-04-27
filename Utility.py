@@ -1,5 +1,7 @@
 import numpy as np
+from random_generator import RandomGenerator
 
+random_generator = RandomGenerator.get_instance()
 
 def insert_linebreaks(text, max_line_length=50):
     words = text.split()
@@ -98,19 +100,22 @@ class StarNames:
             "Kappa",
         ]
         self.catalogs = ["HD", "HIP"]
+        
 
     # Combined star name generation function
-
     def generate_combined_star_name(self):
+
         name = (
-            np.random.choice(self.prefixes)
-            + np.random.choice(self.middles)
-            + np.random.choice(self.suffixes)
+            random_generator.choice(self.prefixes)
+            + random_generator.choice(self.middles)
+            + random_generator.choice(self.suffixes)
         )
-        constellation = np.random.choice(self.constellations)
-        designation = np.random.choice(self.designations)
-        catalog = np.random.choice(self.catalogs)
-        number = np.random.randint(1, 9999)
+        
+        constellation = random_generator.choice(self.constellations)
+        
+        designation = random_generator.choice(self.designations)
+        catalog = random_generator.choice(self.catalogs)
+        number = random_generator.randint(1, 9999)
 
         # Format options for the combined approach
         format_options = [
@@ -124,7 +129,7 @@ class StarNames:
 
         # Randomly select a format option
         return [
-            np.random.choice(format_options),
+            random_generator.choice(format_options),
             name,
             constellation,
             designation,
@@ -177,9 +182,9 @@ class PlanetNames:
 
     def generate_combined_planet_name(self):
         name = (
-            np.random.choice(self.prefixes)
-            + np.random.choice(self.middles)
-            + np.random.choice(self.suffixes)
+            random_generator.choice(self.prefixes)
+            + random_generator.choice(self.middles)
+            + random_generator.choice(self.suffixes)
         )
         star_name = self.star.name
         orbit_number = self.orbit_number
@@ -211,7 +216,7 @@ class PlanetNames:
         ]
 
         # Randomly select a format option
-        name = np.random.choice(format_options)
+        name = random_generator.choice(format_options)
         return name
 
 
@@ -331,7 +336,7 @@ class RareMinerals:
             number_of_minerals, len(all_mineral_names)
         )  # Ensure request does not exceed available minerals
 
-        selected_mineral_names = np.random.choice(
+        selected_mineral_names = random_generator.choice(
             all_mineral_names, size=number_of_minerals, replace=False
         )
         random_minerals = [
@@ -340,3 +345,7 @@ class RareMinerals:
         ]
 
         return random_minerals
+
+
+
+
