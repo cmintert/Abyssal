@@ -25,7 +25,10 @@ def initialize_starmap():
             # Generate transport network and population model
             try:
                 print("Generating transport network...")
-                starmap.generate_transport_network()
+                starmap.generate_transport_network(
+                    config.STELLAR_PROJECTOR_RANGE,
+                    config.SHIP_PROJECTOR_RANGE,
+                    config.STELLAR_PROJECTOR_DENSITY)
 
                 print("Generating population model...")
                 starmap.generate_colony_populations()
