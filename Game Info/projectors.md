@@ -15,7 +15,7 @@ conventional travel.
 - **Visual Manifestation**: Rings of ghostly glow surrounding
   impenetrable darkness
 - **Physical Effects**: Cause time dilation regardless of distance
-  traveled
+  travelled
 - **Limitations**: Cannot transmit electromagnetic waves, preventing
   direct communication
 - **Power Source**: Instant Release High-Energy Capacitors (IRHECs)
